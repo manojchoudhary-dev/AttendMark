@@ -1,0 +1,502 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
+<meta name="color-scheme" content="light dark"/>
+<link rel="icon" href="data:,"/>
+<title>AttendMark — Full System</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@500;700;800;900&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<style>
+:root{
+  --bg:#f6f3ff; --surface:#ffffff; --surface2:#efe9ff; --surface3:#e6f4ea;
+  --ink:#1a162e; --muted:#6b6585; --line:#e7e1f5;
+  --primary:#6750a4; --primary2:#7c5cbf; --onprimary:#fff;
+  --mint:#0f7a5a; --mintbg:#d9f2e6; --pink:#9c3a5a; --pinkbg:#ffe0ec;
+  --amber:#8a5a00; --amberbg:#ffecb3; --radius:28px; --radius2:20px;
+  --shadow:0 10px 30px rgba(103,80,164,.12);
+}
+@media (prefers-color-scheme: dark){
+  :root{ --bg:#12101e; --surface:#1e1b31; --surface2:#2a2547; --surface3:#1d2f28; --ink:#f2efff; --muted:#a8a3c2; --line:#332e52; --primary:#cdbdff; --primary2:#b8a6ff; --onprimary:#21173d; --mintbg:#143d2e; --pinkbg:#3d1e2e; --amberbg:#3d2f00; --shadow:0 10px 30px rgba(0,0,0,.35);}
+}
+*{box-sizing:border-box}
+body{margin:0;font-family:Inter,system-ui,sans-serif;background:var(--bg);color:var(--ink);line-height:1.55}
+h1,h2,h3{font-family:Nunito,sans-serif;line-height:1.05;margin:0}
+a{color:var(--primary)}
+button,input,select,textarea{font:inherit}
+button{min-height:48px}
+.wrap{max-width:1180px;margin:0 auto;padding:0 18px 48px}
+.topbar{position:sticky;top:0;z-index:20;background:color-mix(in srgb, var(--bg) 88%, transparent);backdrop-filter:blur(14px);border-bottom:1px solid var(--line)}
+.topbar-in{max-width:1180px;margin:0 auto;padding:12px 18px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.logo{display:flex;align-items:center;gap:12px;font-family:Nunito;font-weight:900;font-size:22px}
+.logo-mark{width:44px;height:44px;border-radius:14px;background:var(--primary);color:var(--onprimary);display:grid;place-items:center;font-size:22px}
+.pill{display:inline-flex;align-items:center;gap:7px;padding:7px 12px;border-radius:999px;background:var(--surface);border:1px solid var(--line);font-size:13px;font-weight:700}
+.dot{width:9px;height:9px;border-radius:50%;background:#eab308}
+.dot.live{background:#22c55e;box-shadow:0 0 0 5px rgba(34,197,94,.18);animation:pulse 1.6s infinite}
+@keyframes pulse{50%{box-shadow:0 0 0 8px rgba(34,197,94,.05)}}
+.hero{padding:28px 0 10px;display:grid;grid-template-columns:1.15fr .85fr;gap:18px}
+@media(max-width:820px){.hero{grid-template-columns:1fr}}
+.hero-card{background:var(--surface);border:1px solid var(--line);border-radius:32px;padding:26px;box-shadow:var(--shadow)}
+.hero-card h1{font-size:clamp(34px,5vw,56px);letter-spacing:-.03em}
+.hero-card h1 span{color:var(--primary)}
+.hero-card p{color:var(--muted);font-size:17px}
+.idcard{background:linear-gradient(135deg,#6750a4,#9a7bff);color:#fff;border-radius:32px;padding:24px;position:relative;overflow:hidden}
+.idcard:after{content:"";position:absolute;right:-40px;top:-40px;width:170px;height:170px;border-radius:50%;background:rgba(255,255,255,.16)}
+.idcard small{letter-spacing:.14em;text-transform:uppercase;opacity:.85;font-weight:800}
+.idcard h3{font-size:28px;margin:10px 0 4px}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
+.chip{background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.25);padding:7px 11px;border-radius:999px;font-size:13px;font-weight:700}
+.role-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin:18px 0}
+@media(max-width:760px){.role-grid{grid-template-columns:1fr}}
+.role{border:2px solid var(--line);background:var(--surface);border-radius:28px;padding:20px;text-align:left;cursor:pointer;transition:.2s;width:100%}
+.role.active{border-color:var(--primary);background:var(--surface2)}
+.role b{font-family:Nunito;font-size:20px;display:block}
+.role span{color:var(--muted);font-size:14px}
+.role i{font-style:normal;font-size:28px;display:block;margin-bottom:8px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media(max-width:860px){.grid2{grid-template-columns:1fr}}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:22px;box-shadow:var(--shadow)}
+.card h2{font-size:24px;margin-bottom:6px}
+.card h3{font-size:19px}
+.sub{color:var(--muted);font-size:14px}
+label{font-weight:700;font-size:13px;display:block;margin:14px 0 6px}
+input,select{width:100%;padding:13px 14px;border-radius:16px;border:1.5px solid var(--line);background:var(--bg);color:var(--ink);min-height:48px}
+.btn{border:0;border-radius:999px;padding:13px 20px;font-weight:800;cursor:pointer;position:relative;overflow:hidden;display:inline-flex;align-items:center;justify-content:center;gap:8px}
+.btn-primary{background:var(--primary);color:var(--onprimary)}
+.btn-mint{background:var(--mintbg);color:var(--mint)}
+.btn-pink{background:var(--pinkbg);color:var(--pink)}
+.btn-ghost{background:var(--surface);border:1.5px solid var(--line);color:var(--ink)}
+.btn-block{width:100%}
+.btn:active{transform:scale(.98)}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:16px 0}
+@media(max-width:760px){.stats{grid-template-columns:repeat(2,1fr)}}
+.stat{background:var(--surface);border:1px solid var(--line);border-radius:22px;padding:16px}
+.stat b{font-family:Nunito;font-size:30px;display:block}
+.stat span{color:var(--muted);font-size:13px;font-weight:700}
+.qrbox{background:#17122b;color:#fff;border-radius:28px;padding:22px;text-align:center}
+.qrwrap{background:#fff;border-radius:20px;padding:14px;width:fit-content;margin:14px auto}
+.bigcode{font-family:Nunito;font-size:44px;letter-spacing:.12em;font-weight:900}
+.rotcode{font-size:30px;letter-spacing:.18em;font-weight:900;color:#cdbdff}
+.progress{height:8px;background:rgba(255,255,255,.18);border-radius:999px;overflow:hidden;margin:12px 0}
+.progress i{display:block;height:100%;background:#a8f0c6;transition:width 1s linear}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th,td{padding:11px 8px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+th{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.badge{display:inline-flex;padding:4px 9px;border-radius:999px;font-size:12px;font-weight:800;background:var(--mintbg);color:var(--mint)}
+.badge.off{background:var(--pinkbg);color:var(--pink)}
+.badge.amber{background:var(--amberbg);color:var(--amber)}
+.alert{border-radius:18px;padding:14px 16px;margin:14px 0;font-size:14px}
+.alert.ok{background:var(--mintbg);color:var(--mint)}
+.alert.err{background:var(--pinkbg);color:var(--pink)}
+.alert.info{background:var(--surface2)}
+.hidden{display:none!important}
+.tabs{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}
+.tab{padding:10px 16px;border-radius:999px;border:1.5px solid var(--line);background:var(--surface);cursor:pointer;font-weight:800;min-height:44px}
+.tab.active{background:var(--primary);color:var(--onprimary);border-color:var(--primary)}
+.steps{display:flex;gap:8px;margin:16px 0}
+.step{flex:1;text-align:center;padding:10px;border-radius:16px;background:var(--bg);font-size:13px;font-weight:800;color:var(--muted)}
+.step.on{background:var(--primary);color:var(--onprimary)}
+.list{list-style:none;padding:0;margin:10px 0}
+.list li{padding:12px 0;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.pop{animation:pop .45s cubic-bezier(.2,2.2,.4,1)}
+@keyframes pop{0%{transform:scale(.92);opacity:.4}100%{transform:scale(1);opacity:1}}
+.footer{margin-top:28px;padding:20px;border-radius:24px;background:var(--surface);border:1px solid var(--line);color:var(--muted);font-size:13px}
+code{background:var(--surface2);padding:2px 6px;border-radius:8px}
+.kbd{font-size:12px}
+details{margin-top:12px} summary{cursor:pointer;font-weight:800;padding:10px 0}
+</style>
+</head>
+<body>
+<header class="topbar"><div class="topbar-in">
+  <div class="logo"><span class="logo-mark">✓</span> AttendMark <span style="font-size:12px;background:var(--mintbg);color:var(--mint);padding:4px 8px;border-radius:999px">FULL SYSTEM</span></div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+    <span class="pill"><span id="connDot" class="dot"></span><span id="connText">Connecting to Firebase…</span></span>
+    <span class="pill" id="userPill">Not logged in</span>
+    <button class="btn btn-ghost hidden" id="logoutBtn" style="min-height:40px;padding:8px 14px">Logout</button>
+  </div>
+</div></header>
+
+<div class="wrap">
+  <!-- HERO -->
+  <section class="hero">
+    <div class="hero-card">
+      <div class="pill" style="margin-bottom:14px">⚡ Attendance in 2 minutes • No roll call • No proxy</div>
+      <h1>Class attendance,<br><span>without the chaos.</span></h1>
+      <p>Teacher login karke session start karta hai. Student apne phone se code daalta hai. Tum — Admin — sab kuch ek jagah dekh sakte ho. Data Firebase me save hota hai, page band karne se nahi udta.</p>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:18px">
+        <button class="btn btn-primary" onclick="showRole('student')">I'm a Student → Mark Present</button>
+        <button class="btn btn-ghost" onclick="showRole('teacher')">Teacher Login</button>
+        <button class="btn btn-pink" onclick="toggleDemo()" id="demoBtn">Preview Demo Mode</button>
+      </div>
+      <div id="globalAlert"></div>
+      <div class="alert info" id="firebaseHelp">
+        <b>Firebase project:</b> <code>attendmark-22ed8</code> &nbsp;•&nbsp; Agar upar “Connecting…” atka rahe, to Firebase Console me <b>Authentication → Email/Password Enable</b> aur <b>Firestore → Create database (test mode)</b> check karo — wahi do step system ko live karte hain.
+      </div>
+    </div>
+    <div class="idcard">
+      <small>FoCP Continuous Assessment • Project by</small>
+      <h3>Manoj Choudhary</h3>
+      <p style="margin:0;opacity:.92">Scholar No. <b>26U020146</b><br>FoCP (CSE-1003) • CSE Core, Section 02<br>IIIT Bhopal • Room MPST-102</p>
+      <div class="chips"><span class="chip">Teacher Panel</span><span class="chip">Student Panel</span><span class="chip">Admin Panel</span><span class="chip">Firebase Live DB</span></div>
+      <div style="margin-top:18px;background:rgba(0,0,0,.18);border-radius:16px;padding:14px">
+        <b>3 Proxy Locks</b><div style="font-size:13px;opacity:.92;margin-top:4px">1) Rotating code har 15 sec &nbsp; 2) Ek Scholar = ek entry &nbsp; 3) Session sirf teacher ke start ke baad active</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- STATS -->
+  <div class="stats">
+    <div class="stat"><b id="statSessions">—</b><span>Total sessions</span></div>
+    <div class="stat"><b id="statPresent">—</b><span>Total present marks</span></div>
+    <div class="stat"><b id="statTeachers">—</b><span>Teachers registered</span></div>
+    <div class="stat"><b id="statLive">0</b><span>Live sessions now</span></div>
+  </div>
+
+  <!-- ROLE SELECTOR -->
+  <div class="role-grid" role="tablist">
+    <button class="role" id="role-student" onclick="showRole('student')"><i>🎓</i><b>Student</b><span>Bina login • Sirf code + scholar number se attendance. Apne phone ke liye bana hai.</span></button>
+    <button class="role active" id="role-teacher" onclick="showRole('teacher')"><i>👩‍🏫</i><b>Teacher</b><span>Login required • Session start karo, live register dekho, CSV / email bhejo.</span></button>
+    <button class="role" id="role-admin" onclick="showRole('admin')"><i>🛡️</i><b>Admin — Manoj</b><span>Sab teachers, sab sessions, saara data. Sirf admin email se khulega.</span></button>
+  </div>
+
+  <!-- STUDENT VIEW -->
+  <section id="view-student" class="hidden">
+    <div class="grid2">
+      <div class="card">
+        <h2>Mark your attendance</h2><p class="sub">Teacher ki screen par dikh raha code daalo. Galat ya purana code chalega nahi.</p>
+        <div class="steps"><div class="step on" id="sstep1">1 • Session Code</div><div class="step" id="sstep2">2 • Your Details</div><div class="step" id="sstep3">3 • Done ✓</div></div>
+        <label>Session Code (6-digit, teacher se milega)</label><input id="stuSessionCode" inputmode="numeric" placeholder="e.g. 482910" maxlength="6">
+        <label>Rotating Code (teacher ki screen par abhi wala)</label><input id="stuRotCode" inputmode="numeric" placeholder="e.g. 7319" maxlength="6">
+        <label>Your Name</label><input id="stuName" placeholder="e.g. Aarav Sharma">
+        <label>Scholar Number</label><input id="stuScholar" placeholder="e.g. 26U020101">
+        <label style="display:flex;gap:10px;align-items:flex-start;font-weight:600"><input type="checkbox" id="stuInClass" checked style="width:20px;height:20px;margin-top:2px"> Main abhi classroom me hi hu</label>
+        <div id="stuMsg"></div>
+        <button class="btn btn-primary btn-block" onclick="markAttendance()" style="margin-top:16px">Mark Me Present ✓</button>
+        <p class="sub" style="margin-top:10px">Dobara mark karne par system bolega “Already marked” — wahi proxy lock hai. Ek device se ek hi scholar ka record best rehta hai.</p>
+      </div>
+      <div class="card">
+        <h3>Student ke liye — 30 second me samjho</h3>
+        <ul class="list">
+          <li><span><b>1. Code dekho</b><br><span class="sub">Teacher ki screen / projector par bada code dikhega</span></span><span class="badge">15 sec</span></li>
+          <li><span><b>2. Form bharo</b><br><span class="sub">Session code + rotating code + scholar number</span></span><span class="badge">20 sec</span></li>
+          <li><span><b>3. Done</b><br><span class="sub">Teacher ke live register me tumhara naam aa jayega</span></span><span class="badge">Instant</span></li>
+        </ul>
+        <div class="alert info"><b>Phone nahi hai / net slow hai?</b> Teacher apne panel se tumhe manually bhi add kar sakta hai — neeche Teacher panel me “Add manually” hai.</div>
+        <h3 style="margin-top:18px">Meri aaj ki attendance</h3>
+        <div id="myToday"><p class="sub">Mark karne ke baad yahan confirmation dikhega.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- TEACHER VIEW -->
+  <section id="view-teacher">
+    <!-- Auth -->
+    <div id="teacherAuth" class="grid2">
+      <div class="card">
+        <h2>Teacher Login</h2><p class="sub">Apne email se login karo. Pehli baar ho to pehle account banao.</p>
+        <div class="tabs"><button class="tab active" id="tabLogin" onclick="authTab('login')">Login</button><button class="tab" id="tabSignup" onclick="authTab('signup')">Create Account</button></div>
+        <div id="signupFields" class="hidden"><label>Full Name</label><input id="authName" placeholder="e.g. Dr. Sachin D N"></div>
+        <label>Email</label><input id="authEmail" type="email" placeholder="teacher@college.edu">
+        <label>Password</label><input id="authPass" type="password" placeholder="Minimum 6 characters">
+        <div id="authMsg"></div>
+        <button class="btn btn-primary btn-block" id="authBtn" onclick="doAuth()" style="margin-top:14px">Login to Dashboard →</button>
+        <p class="sub" style="margin-top:10px">Admin ke liye: <b>founder@slopemaps.in</b>, <b>hello@slopemaps.in</b> ya <b>manojchoudharyy0@gmail.com</b> se login karne par Admin panel bhi khul jayega. Password Firebase sambhalta hai — is page me save nahi hota.</p>
+      </div>
+      <div class="card">
+        <h3>Teacher ko kya-kya milega?</h3>
+        <ul class="list">
+          <li><span>Apni classes ke sessions banana</span><span class="badge">Unlimited</span></li>
+          <li><span>Live register — kaun aaya, kab aaya</span><span class="badge">Real-time</span></li>
+          <li><span>Rotating QR + code projector view</span><span class="badge">15 sec</span></li>
+          <li><span>CSV download + teacher ko email-ready register</span><span class="badge">1 click</span></li>
+          <li><span>Past sessions ka pura history</span><span class="badge">Saved</span></li>
+        </ul>
+        <div class="alert info">Demo ke liye pehle <b>Preview Demo Mode</b> dabakar bina account ke pura flow dekh sakte ho. Live mode ke liye upar login karo.</div>
+      </div>
+    </div>
+
+    <!-- Dashboard -->
+    <div id="teacherDash" class="hidden">
+      <div class="grid2">
+        <div class="card">
+          <h2 id="dashTitle">Teacher Dashboard</h2><p class="sub" id="dashSub">Session banao, class ko code dikhao.</p>
+          <label>Subject</label><input id="sessSubject" value="FoCP (CSE-1003)" placeholder="e.g. FoCP (CSE-1003)">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+            <div><label>Section / Class</label><input id="sessSection" value="CSE Core — Section 02"></div>
+            <div><label>Room</label><input id="sessRoom" value="MPST-102"></div>
+          </div>
+          <label>Teacher's Email (register bhejne ke liye)</label><input id="sessEmail" type="email" placeholder="teacher@college.edu">
+          <button class="btn btn-primary btn-block" onclick="createSession()" style="margin-top:16px">▶ Start New Session</button>
+          <div id="sessMsg"></div>
+          <details><summary>Add a student manually (no phone case)</summary>
+            <label>Student Name</label><input id="manualName"><label>Scholar Number</label><input id="manualScholar">
+            <button class="btn btn-mint btn-block" onclick="manualAdd()" style="margin-top:10px">Add Manually to Live Session</button>
+          </details>
+        </div>
+        <div class="qrbox" id="liveBox">
+          <div style="display:flex;justify-content:space-between;align-items:center"><b>🔴 LIVE SESSION</b><span class="badge" id="liveStatus">No session yet</span></div>
+          <p style="opacity:.85;font-size:14px" id="liveMeta">Session start karte hi yahan bada code aayega — projector par yahi dikhana hai.</p>
+          <div class="qrwrap hidden" id="qrWrap"><div id="qrcode"></div></div>
+          <div style="font-size:12px;letter-spacing:.14em;opacity:.8">SESSION CODE</div><div class="bigcode" id="bigCode">------</div>
+          <div style="font-size:12px;letter-spacing:.14em;opacity:.8;margin-top:8px">ROTATING CODE • <span id="countdown">15</span>s</div><div class="rotcode" id="rotCode">----</div>
+          <div class="progress"><i id="progBar" style="width:100%"></i></div>
+          <div style="font-size:28px;font-family:Nunito;font-weight:900"><span id="liveCount">0</span> present</div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:12px">
+            <button class="btn btn-ghost" onclick="downloadCSV()">⬇ CSV</button>
+            <button class="btn btn-ghost" onclick="emailRegister()">✉ Email Register</button>
+            <button class="btn btn-pink" onclick="endSession()">End Session</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:16px">
+        <h3>Live Register <span class="badge" id="regDate"></span></h3>
+        <div style="overflow-x:auto"><table><thead><tr><th>#</th><th>Student</th><th>Scholar No.</th><th>Time</th><th>Via</th></tr></thead><tbody id="regBody"><tr><td colspan="5" class="sub">Abhi koi entry nahi — student mark karega to yahan live aayega.</td></tr></tbody></table></div>
+      </div>
+
+      <div class="card" style="margin-top:16px"><h3>My Past Sessions</h3><div id="pastSessions"><p class="sub">Loading…</p></div></div>
+    </div>
+  </section>
+
+  <!-- ADMIN VIEW -->
+  <section id="view-admin" class="hidden">
+    <div class="card">
+      <h2>🛡️ Admin Panel — Manoj Only</h2>
+      <p class="sub">Ye view sirf admin ko dikhta hai. Admin emails: <code>founder@slopemaps.in</code> • <code>hello@slopemaps.in</code> • <code>manojchoudharyy0@gmail.com</code> — inme se kisi se Teacher Login karo, phir ye panel khul jayega. Baaki teachers ko yahan sirf “Access denied” dikhega — yahi role system ka proof hai.</p>
+      <div id="adminGate"></div>
+      <div id="adminContent" class="hidden">
+        <div class="stats" style="margin-top:16px">
+          <div class="stat"><b id="aTeachers">0</b><span>Teachers</span></div>
+          <div class="stat"><b id="aSessions">0</b><span>All Sessions</span></div>
+          <div class="stat"><b id="aPresent">0</b><span>All Present</span></div>
+          <div class="stat"><b id="aBlocked">0</b><span>Live Now</span></div>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-primary" onclick="loadAdmin()">↻ Refresh All Data</button><button class="btn btn-ghost" onclick="downloadAllCSV()">⬇ Download All Attendance CSV</button></div>
+        <h3 style="margin-top:22px">All Teachers</h3><div style="overflow-x:auto"><table><thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Joined</th></tr></thead><tbody id="adminTeachers"></tbody></table></div>
+        <h3 style="margin-top:22px">All Sessions (every teacher)</h3><div style="overflow-x:auto"><table><thead><tr><th>Subject</th><th>Teacher</th><th>Section • Room</th><th>Code</th><th>Status</th><th>Date</th></tr></thead><tbody id="adminSessions"></tbody></table></div>
+        <h3 style="margin-top:22px">Recent Attendance (latest 30)</h3><div style="overflow-x:auto"><table><thead><tr><th>Student</th><th>Scholar</th><th>Session</th><th>Time</th></tr></thead><tbody id="adminAtt"></tbody></table></div>
+      </div>
+    </div>
+  </section>
+
+  <div class="footer">
+    <b>AttendMark — Full System</b> • Built by <b>Manoj Choudhary • 26U020146 • FoCP (CSE-1003)</b> • Backend: Firebase Auth + Firestore (project <code>attendmark-22ed8</code>) • Teacher / Student / Admin — teen alag access, ek hi website.<br>
+    <span class="kbd">Honest note: Rotating code + duplicate block proxy ko bahut mushkil bana dete hain, 100% koi system proxy-proof nahi hota. Firestore test-mode rules demo ke liye hain — real college use se pehle rules tight karne honge.</span>
+  </div>
+</div>
+
+<script>
+var firebaseConfig={apiKey:"AIzaSyAz4g_owtqnTTyPRaM3zNyI3G94JNCfGZE",authDomain:"attendmark-22ed8.firebaseapp.com",projectId:"attendmark-22ed8",storageBucket:"attendmark-22ed8.firebasestorage.app",messagingSenderId:"577111912387",appId:"1:577111912387:web:fe9a8c229ff2a8177cd776"};
+var ADMIN_EMAILS=["founder@slopemaps.in","hello@slopemaps.in","admin@attendmark.in","manojchoudharyy0@gmail.com"];
+var auth=null,db=null,fbOk=false,demoMode=false;
+var currentUser=null,userRole='teacher',activeSession=null,rotTimer=null,countTimer=null,secondsLeft=15;
+var demo={sessions:[],attendance:[],users:[],seq:1};
+try{ firebase.initializeApp(firebaseConfig); auth=firebase.auth(); db=firebase.firestore(); fbOk=true; }catch(e){ setConn(false,'Firebase init failed'); }
+
+function setConn(ok,txt){ document.getElementById('connDot').className='dot'+(ok?' live':''); document.getElementById('connText').textContent=txt; }
+function $(id){return document.getElementById(id)}
+function esc(s){return String(s||'').replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
+function isAdminEmail(e){return ADMIN_EMAILS.indexOf((e||'').toLowerCase())>-1}
+function showRole(r){
+  ['student','teacher','admin'].forEach(function(x){ $('view-'+x).classList.toggle('hidden',x!==r); $('role-'+x).classList.toggle('active',x===r); });
+  if(r==='admin') renderAdminGate();
+}
+function authTab(t){ var login=t==='login'; $('tabLogin').classList.toggle('active',login); $('tabSignup').classList.toggle('active',!login); $('signupFields').classList.toggle('hidden',login); $('authBtn').textContent=login?'Login to Dashboard →':'Create Account & Enter →'; }
+function toggleDemo(){
+  demoMode=!demoMode;
+  $('demoBtn').textContent=demoMode?'✓ Demo Mode ON — Tap to go Live':'Preview Demo Mode';
+  if(demoMode){ setConn(true,'Demo Mode (in-memory preview)'); currentUser={uid:'demo-admin',email:'founder@slopemaps.in',displayName:'Manoj Choudhary (Demo Admin)'}; userRole='admin'; onLoggedIn(); seedDemo(); $('globalAlert').innerHTML='<div class="alert ok pop"><b>Demo Mode ON:</b> Bina Firebase account ke pura flow chalega. Data sirf is tab me rahega. Live data ke liye Demo OFF karke asli login karo.</div>'; }
+  else{ setConn(fbOk,'Live • Firebase '+(fbOk?'connected':'not ready')); location.reload(); }
+}
+function seedDemo(){
+  if(demo.users.length) return;
+  demo.users=[{name:'Manoj Choudhary',email:'founder@slopemaps.in',role:'admin',createdAt:new Date()},{name:'Dr. Sachin D N',email:'sachin@iiitbhopal.ac.in',role:'teacher',createdAt:new Date()}];
+  updateStatsDemo();
+}
+function updateStatsDemo(){ $('statSessions').textContent=demo.sessions.length; $('statPresent').textContent=demo.attendance.length; $('statTeachers').textContent=demo.users.length; $('statLive').textContent=demo.sessions.filter(function(s){return s.active}).length; }
+
+// AUTH
+function doAuth(){
+  var email=$('authEmail').value.trim(), pass=$('authPass').value, name=$('authName').value.trim(), isSignup=!$('signupFields').classList.contains('hidden');
+  if(!email||!pass){ $('authMsg').innerHTML='<div class="alert err">Email aur password dono bharo.</div>'; return; }
+  if(demoMode){ currentUser={uid:'demo-'+Date.now(),email:email,displayName:name||email.split('@')[0]}; userRole=isAdminEmail(email)?'admin':'teacher'; demo.users.push({name:currentUser.displayName,email:email,role:userRole,createdAt:new Date()}); onLoggedIn(); return; }
+  if(!fbOk){ $('authMsg').innerHTML='<div class="alert err">Firebase ready nahi hai — Demo Mode use karo ya Console me Auth/Firestore enable karo.</div>'; return; }
+  $('authBtn').textContent='Please wait…';
+  if(isSignup){
+    auth.createUserWithEmailAndPassword(email,pass).then(function(cred){
+      var role=isAdminEmail(email)?'admin':'teacher';
+      return db.collection('users').doc(cred.user.uid).set({name:name||email,email:email,role:role,createdAt:firebase.firestore.FieldValue.serverTimestamp()});
+    }).catch(function(e){ $('authMsg').innerHTML='<div class="alert err">'+esc(e.message)+'</div>'; $('authBtn').textContent='Create Account & Enter →'; });
+  }else{
+    auth.signInWithEmailAndPassword(email,pass).catch(function(e){ $('authMsg').innerHTML='<div class="alert err">'+esc(e.message)+'</div>'; $('authBtn').textContent='Login to Dashboard →'; });
+  }
+}
+if(auth){ auth.onAuthStateChanged(function(user){
+  if(demoMode) return;
+  if(user){ currentUser=user; setConn(true,'Live • Firebase Connected');
+    db.collection('users').doc(user.uid).get().then(function(doc){
+      if(doc.exists){ userRole=doc.data().role|| (isAdminEmail(user.email)?'admin':'teacher'); currentUser.displayName=doc.data().name; }
+      else { userRole=isAdminEmail(user.email)?'admin':'teacher'; db.collection('users').doc(user.uid).set({name:user.email,email:user.email,role:userRole,createdAt:firebase.firestore.FieldValue.serverTimestamp()}); }
+      onLoggedIn(); loadGlobalStats();
+    }).catch(function(){ userRole=isAdminEmail(user.email)?'admin':'teacher'; onLoggedIn(); });
+  } else { setConn(true,'Live • Firebase Connected — login pending'); loadGlobalStats(); }
+});}
+function onLoggedIn(){
+  $('teacherAuth').classList.add('hidden'); $('teacherDash').classList.remove('hidden');
+  $('userPill').textContent=(currentUser.displayName||currentUser.email)+' • '+userRole.toUpperCase();
+  $('logoutBtn').classList.remove('hidden');
+  $('dashTitle').textContent='Welcome, '+(currentUser.displayName||'Teacher');
+  $('dashSub').textContent=currentUser.email+' • Role: '+userRole+(userRole==='admin'?' • Tum Admin bhi ho — Admin tab kholo':'');
+  if($('sessEmail') && ! $('sessEmail').value) $('sessEmail').value=currentUser.email;
+  $('regDate').textContent=new Date().toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'});
+  loadPastSessions(); renderAdminGate();
+}
+$('logoutBtn').addEventListener('click',function(){ if(demoMode){location.reload();} else if(auth) auth.signOut().then(function(){location.reload()}); });
+
+// SESSIONS
+function rand(n){ var s=''; for(var i=0;i<n;i++) s+=Math.floor(Math.random()*10); return s; }
+function createSession(){
+  var subj=$('sessSubject').value.trim()||'Class', sec=$('sessSection').value.trim(), room=$('sessRoom').value.trim(), temail=$('sessEmail').value.trim();
+  if(!currentUser){ $('sessMsg').innerHTML='<div class="alert err">Pehle login karo.</div>'; return; }
+  var sess={teacherId:currentUser.uid,teacherName:currentUser.displayName||currentUser.email,teacherEmail:temail||currentUser.email,subject:subj,section:sec,room:room,code:rand(6),rotatingCode:rand(4),active:true,createdAt:new Date(),dateStr:new Date().toLocaleDateString('en-IN')};
+  if(demoMode){ sess.id='demo-'+(demo.seq++); demo.sessions.unshift(sess); startLive(sess); updateStatsDemo(); return; }
+  db.collection('sessions').add({teacherId:sess.teacherId,teacherName:sess.teacherName,teacherEmail:sess.teacherEmail,subject:subj,section:sec,room:room,code:sess.code,rotatingCode:sess.rotatingCode,active:true,createdAt:firebase.firestore.FieldValue.serverTimestamp(),dateStr:sess.dateStr}).then(function(ref){ sess.id=ref.id; startLive(sess); loadGlobalStats(); loadPastSessions(); }).catch(function(e){ $('sessMsg').innerHTML='<div class="alert err">'+esc(e.message)+' — Firestore test mode on hai kya? Console me check karo.</div>'; });
+}
+function startLive(sess){
+  activeSession=sess; $('liveStatus').textContent='LIVE'; $('liveStatus').className='badge';
+  $('liveMeta').textContent=sess.subject+' • '+sess.section+' • '+sess.room+' • '+sess.dateStr;
+  $('bigCode').textContent=sess.code; $('rotCode').textContent=sess.rotatingCode; $('qrWrap').classList.remove('hidden');
+  renderQR(); startRotation(); listenAttendance(); $('liveCount').textContent='0';
+  $('sessMsg').innerHTML='<div class="alert ok pop"><b>Session LIVE!</b> Ye screen projector par dikhao. Student Session Code + Rotating Code daalega.</div>';
+}
+function renderQR(){ var el=$('qrcode'); el.innerHTML=''; if(window.QRCode){ new QRCode(el,{text:'ATTENDMARK:'+(activeSession?activeSession.code:'')+':'+(activeSession?activeSession.rotatingCode:''),width:160,height:160}); } }
+function startRotation(){
+  clearInterval(rotTimer); clearInterval(countTimer); secondsLeft=15;
+  countTimer=setInterval(function(){ secondsLeft--; if(secondsLeft<0) secondsLeft=15; $('countdown').textContent=secondsLeft; $('progBar').style.width=(secondsLeft/15*100)+'%'; },1000);
+  rotTimer=setInterval(function(){
+    if(!activeSession) return; activeSession.rotatingCode=rand(4); $('rotCode').textContent=activeSession.rotatingCode; $('rotCode').parentElement.classList.remove('pop'); void $('rotCode').offsetWidth; $('rotCode').classList.add('pop'); renderQR();
+    if(!demoMode && db) db.collection('sessions').doc(activeSession.id).update({rotatingCode:activeSession.rotatingCode}).catch(function(){});
+  },15000);
+}
+function listenAttendance(){
+  if(demoMode){ renderReg(demo.attendance.filter(function(a){return a.sessionId===activeSession.id})); return; }
+  db.collection('attendance').where('sessionId','==',activeSession.id).orderBy('markedAt','asc').onSnapshot(function(snap){ var arr=[]; snap.forEach(function(d){ var x=d.data(); x.id=d.id; arr.push(x); }); renderReg(arr); },function(e){ console.log(e); });
+}
+function renderReg(arr){
+  $('liveCount').textContent=arr.length; $('liveCount').classList.remove('pop'); void $('liveCount').offsetWidth; $('liveCount').classList.add('pop');
+  if(!arr.length){ $('regBody').innerHTML='<tr><td colspan="5" class="sub">Abhi koi entry nahi.</td></tr>'; return; }
+  $('regBody').innerHTML=arr.map(function(a,i){ var t=a.markedAt&&a.markedAt.toDate?a.markedAt.toDate().toLocaleTimeString('en-IN'): (a.timeStr||''); return '<tr class="pop"><td>'+(i+1)+'</td><td><b>'+esc(a.name)+'</b></td><td>'+esc(a.scholarNo)+'</td><td>'+esc(t)+'</td><td><span class="badge">'+esc(a.via||'Code')+'</span></td></tr>'; }).join('');
+  activeSession._att=arr;
+}
+function endSession(){
+  if(!activeSession){ alertBox('sessMsg','Pehle session start karo.'); return; }
+  clearInterval(rotTimer); clearInterval(countTimer);
+  if(demoMode){ var s=demo.sessions.find(function(x){return x.id===activeSession.id}); if(s) s.active=false; }
+  else db.collection('sessions').doc(activeSession.id).update({active:false}).catch(function(){});
+  $('liveStatus').textContent='ENDED'; $('liveStatus').className='badge off';
+  $('sessMsg').innerHTML='<div class="alert ok"><b>Session ended.</b> Ab CSV download ya Email Register dabao — register teacher ko bhejne ke liye ready hai.</div>';
+  window.scrollTo({top:$('liveBox').offsetTop-90,behavior:'smooth'});
+}
+function alertBox(id,msg){ $(id).innerHTML='<div class="alert err">'+esc(msg)+'</div>'; }
+
+// STUDENT MARK
+function markAttendance(){
+  var sc=$('stuSessionCode').value.trim(), rc=$('stuRotCode').value.trim(), name=$('stuName').value.trim(), sch=$('stuScholar').value.trim().toUpperCase();
+  if(!sc||!name||!sch){ $('stuMsg').innerHTML='<div class="alert err">Session code, naam aur scholar number — teeno zaroori hain.</div>'; return; }
+  if(!$('stuInClass').checked){ $('stuMsg').innerHTML='<div class="alert err">Classroom verify karo — bina class me hue attendance nahi lagegi.</div>'; return; }
+  $('sstep2').classList.add('on');
+  if(demoMode){
+    var sess=demo.sessions.find(function(s){return s.code===sc && s.active});
+    if(!sess){ $('stuMsg').innerHTML='<div class="alert err">Session nahi mila ya khatm ho gaya hai. Demo me pehle Teacher panel se session start karo.</div>'; return; }
+    if(rc && rc!==sess.rotatingCode){ $('stuMsg').innerHTML='<div class="alert err">Rotating code galat / expire ho gaya. Teacher ki screen par abhi wala code dekho.</div>'; return; }
+    if(demo.attendance.some(function(a){return a.sessionId===sess.id && a.scholarNo===sch})){ $('stuMsg').innerHTML='<div class="alert err"><b>Already marked!</b> Is scholar number ki attendance is session me pehle se lagi hai — proxy blocked.</div>'; return; }
+    var rec={sessionId:sess.id,sessionCode:sess.code,subject:sess.subject,name:name,scholarNo:sch,via:'QR/Code',timeStr:new Date().toLocaleTimeString('en-IN'),markedAt:new Date()};
+    demo.attendance.push(rec); $('sstep3').classList.add('on');
+    $('stuMsg').innerHTML='<div class="alert ok pop"><b>✓ Present marked!</b> '+esc(name)+' • '+esc(sch)+' • '+esc(sess.subject)+'</div>';
+    $('myToday').innerHTML='<div class="alert ok"><b>'+esc(sess.subject)+'</b> — Present at '+rec.timeStr+'<br>Scholar: '+esc(sch)+'</div>';
+    if(activeSession && activeSession.id===sess.id) renderReg(demo.attendance.filter(function(a){return a.sessionId===sess.id}));
+    updateStatsDemo(); return;
+  }
+  // Live Firebase
+  db.collection('sessions').where('code','==',sc).where('active','==',true).limit(1).get().then(function(snap){
+    if(snap.empty){ $('stuMsg').innerHTML='<div class="alert err">Active session nahi mila. Code teacher se dobara check karo.</div>'; return; }
+    var doc=snap.docs[0], sess=doc.data(); sess.id=doc.id;
+    if(rc && rc!==sess.rotatingCode){ $('stuMsg').innerHTML='<div class="alert err">Rotating code expire / galat hai — teacher ki screen par abhi wala code dekho (har 15 sec badalta hai).</div>'; return; }
+    db.collection('attendance').where('sessionId','==',sess.id).where('scholarNo','==',sch).limit(1).get().then(function(dup){
+      if(!dup.empty){ $('stuMsg').innerHTML='<div class="alert err"><b>Already marked!</b> Ye scholar number is session me pehle se present hai.</div>'; return; }
+      db.collection('attendance').add({sessionId:sess.id,sessionCode:sc,subject:sess.subject,teacherId:sess.teacherId,name:name,scholarNo:sch,via:'QR/Code',markedAt:firebase.firestore.FieldValue.serverTimestamp()}).then(function(){
+        $('sstep3').classList.add('on'); $('stuMsg').innerHTML='<div class="alert ok pop"><b>✓ Present marked!</b> '+esc(name)+' • '+esc(sess.subject)+'</div>';
+        $('myToday').innerHTML='<div class="alert ok"><b>'+esc(sess.subject)+'</b> — Present ✓<br>Scholar: '+esc(sch)+' • '+new Date().toLocaleTimeString('en-IN')+'</div>';
+      });
+    });
+  }).catch(function(e){ $('stuMsg').innerHTML='<div class="alert err">'+esc(e.message)+'</div>'; });
+}
+function manualAdd(){
+  if(!activeSession){ alertBox('sessMsg','Pehle live session start karo.'); return; }
+  var n=$('manualName').value.trim(), s=$('manualScholar').value.trim().toUpperCase(); if(!n||!s) return;
+  if(demoMode){ demo.attendance.push({sessionId:activeSession.id,name:n,scholarNo:s,via:'Manual',timeStr:new Date().toLocaleTimeString('en-IN'),markedAt:new Date()}); renderReg(demo.attendance.filter(function(a){return a.sessionId===activeSession.id})); return; }
+  db.collection('attendance').add({sessionId:activeSession.id,sessionCode:activeSession.code,subject:activeSession.subject,name:n,scholarNo:s,via:'Manual',markedAt:firebase.firestore.FieldValue.serverTimestamp()});
+}
+
+// CSV & EMAIL
+function currentAtt(){ return (activeSession && activeSession._att) ? activeSession._att : (demoMode? demo.attendance.filter(function(a){return activeSession&&a.sessionId===activeSession.id}) : []); }
+function downloadCSV(){
+  var arr=currentAtt(); if(!activeSession||!arr.length){ alertBox('sessMsg','Register khaali hai — pehle kuch students mark karein.'); return; }
+  var csv='Scholar Number,Name,Time,Subject,Section,Date\n'+arr.map(function(a){ var t=a.markedAt&&a.markedAt.toDate?a.markedAt.toDate().toLocaleString('en-IN'):(a.timeStr||''); return [a.scholarNo,a.name,t,activeSession.subject,activeSession.section,activeSession.dateStr].map(function(x){return '"'+String(x||'').replace(/"/g,'""')+'"'}).join(','); }).join('\n');
+  dl(csv,'AttendMark-'+activeSession.code+'.csv');
+}
+function dl(text,filename){ var b=new Blob([text],{type:'text/csv'}); var a=document.createElement('a'); a.href=URL.createObjectURL(b); a.download=filename; a.click(); }
+function emailRegister(){
+  var arr=currentAtt(); if(!activeSession||!arr.length){ alertBox('sessMsg','Register khaali hai.'); return; }
+  downloadCSV();
+  var to=activeSession.teacherEmail||currentUser.email;
+  var subject=encodeURIComponent('AttendMark Register — '+activeSession.subject+' • '+activeSession.dateStr+' • '+arr.length+' present');
+  var body=encodeURIComponent('Hello,\n\nAttendance register for '+activeSession.subject+' ('+activeSession.section+', '+activeSession.room+')\nDate: '+activeSession.dateStr+'\nPresent: '+arr.length+'\n\n'+arr.map(function(a,i){return (i+1)+'. '+a.scholarNo+' — '+a.name}).join('\n')+'\n\nCSV file attached karke bhejna hai (abhi download hui hai).\n— AttendMark');
+  window.location.href='mailto:'+encodeURIComponent(to)+'?subject='+subject+'&body='+body;
+}
+
+// PAST & GLOBAL
+function loadPastSessions(){
+  if(demoMode){ $('pastSessions').innerHTML=demo.sessions.length? demo.sessions.map(function(s){return '<div class="list"><li><span><b>'+esc(s.subject)+'</b><br><span class="sub">'+esc(s.section)+' • '+esc(s.dateStr)+' • Code '+esc(s.code)+'</span></span><span class="badge '+(s.active?'':'off')+'">'+(s.active?'LIVE':'Ended')+'</span></li></div>'}).join(''):'<p class="sub">Abhi koi session nahi.</p>'; return; }
+  if(!db||!currentUser) return;
+  db.collection('sessions').where('teacherId','==',currentUser.uid).orderBy('createdAt','desc').limit(20).get().then(function(snap){ var h=''; snap.forEach(function(d){ var s=d.data(); h+='<div class="list"><li><span><b>'+esc(s.subject)+'</b><br><span class="sub">'+esc(s.section||'')+' • '+esc(s.dateStr||'')+' • Code '+esc(s.code)+'</span></span><span class="badge '+(s.active?'':'off')+'">'+(s.active?'LIVE':'Ended')+'</span></li></div>'; }); $('pastSessions').innerHTML=h||'<p class="sub">Abhi koi session nahi.</p>'; }).catch(function(){ $('pastSessions').innerHTML='<p class="sub">Sessions load nahi hue — Firestore enable / index check karo.</p>'; });
+}
+function loadGlobalStats(){
+  if(demoMode){ updateStatsDemo(); return; }
+  if(!db) return;
+  db.collection('sessions').get().then(function(s){ $('statSessions').textContent=s.size; var live=0; s.forEach(function(d){ if(d.data().active) live++; }); $('statLive').textContent=live; }).catch(function(){});
+  db.collection('attendance').get().then(function(s){ $('statPresent').textContent=s.size; }).catch(function(){});
+  db.collection('users').get().then(function(s){ $('statTeachers').textContent=s.size; }).catch(function(){});
+}
+
+// ADMIN
+function renderAdminGate(){
+  var gate=$('adminGate'), content=$('adminContent');
+  if(!currentUser){ gate.innerHTML='<div class="alert err">Pehle Teacher tab se login karo. Admin email se login karne par hi ye panel khulega.</div>'; content.classList.add('hidden'); return; }
+  if(userRole!=='admin' && !isAdminEmail(currentUser.email)){ gate.innerHTML='<div class="alert err"><b>Access denied</b> — tum <b>'+esc(currentUser.email)+'</b> se logged in ho, ye admin account nahi hai. Manoj ke admin email se login karo.</div>'; content.classList.add('hidden'); return; }
+  gate.innerHTML='<div class="alert ok pop"><b>Welcome Admin — '+esc(currentUser.displayName||currentUser.email)+'</b> • Tumhe sab teachers, sab sessions aur saara attendance data dikh raha hai.</div>'; content.classList.remove('hidden'); loadAdmin();
+}
+function loadAdmin(){
+  if(demoMode){ $('aTeachers').textContent=demo.users.length; $('aSessions').textContent=demo.sessions.length; $('aPresent').textContent=demo.attendance.length; $('aBlocked').textContent=demo.sessions.filter(function(s){return s.active}).length;
+    $('adminTeachers').innerHTML=demo.users.map(function(u){return '<tr><td><b>'+esc(u.name)+'</b></td><td>'+esc(u.email)+'</td><td><span class="badge">'+esc(u.role)+'</span></td><td>'+new Date(u.createdAt).toLocaleDateString('en-IN')+'</td></tr>'}).join('');
+    $('adminSessions').innerHTML=demo.sessions.map(function(s){return '<tr><td>'+esc(s.subject)+'</td><td>'+esc(s.teacherName)+'</td><td>'+esc(s.section)+' • '+esc(s.room)+'</td><td>'+esc(s.code)+'</td><td>'+(s.active?'LIVE':'Ended')+'</td><td>'+esc(s.dateStr)+'</td></tr>'}).join('')||'<tr><td colspan="6" class="sub">No sessions yet</td></tr>';
+    $('adminAtt').innerHTML=demo.attendance.slice(-30).reverse().map(function(a){return '<tr><td>'+esc(a.name)+'</td><td>'+esc(a.scholarNo)+'</td><td>'+esc(a.subject||a.sessionId)+'</td><td>'+esc(a.timeStr||'')+'</td></tr>'}).join('')||'<tr><td colspan="4" class="sub">No attendance yet</td></tr>'; return; }
+  if(!db) return;
+  db.collection('users').get().then(function(s){ $('aTeachers').textContent=s.size; var h=''; s.forEach(function(d){ var u=d.data(); h+='<tr><td><b>'+esc(u.name||'')+'</b></td><td>'+esc(u.email)+'</td><td><span class="badge">'+esc(u.role||'teacher')+'</span></td><td>'+(u.createdAt&&u.createdAt.toDate?u.createdAt.toDate().toLocaleDateString('en-IN'):'')+'</td></tr>'; }); $('adminTeachers').innerHTML=h; });
+  db.collection('sessions').orderBy('createdAt','desc').limit(50).get().then(function(s){ $('aSessions').textContent=s.size; var live=0,h=''; s.forEach(function(d){ var x=d.data(); if(x.active) live++; h+='<tr><td>'+esc(x.subject)+'</td><td>'+esc(x.teacherName||'')+'</td><td>'+esc(x.section||'')+' • '+esc(x.room||'')+'</td><td>'+esc(x.code)+'</td><td>'+(x.active?'LIVE':'Ended')+'</td><td>'+esc(x.dateStr||'')+'</td></tr>'; }); $('aBlocked').textContent=live; $('adminSessions').innerHTML=h||'<tr><td colspan="6" class="sub">No sessions</td></tr>'; });
+  db.collection('attendance').orderBy('markedAt','desc').limit(30).get().then(function(s){ $('aPresent').textContent=s.size; var h=''; s.forEach(function(d){ var a=d.data(); h+='<tr><td>'+esc(a.name)+'</td><td>'+esc(a.scholarNo)+'</td><td>'+esc(a.subject||'')+'</td><td>'+(a.markedAt&&a.markedAt.toDate?a.markedAt.toDate().toLocaleString('en-IN'):'')+'</td></tr>'; }); $('adminAtt').innerHTML=h||'<tr><td colspan="4" class="sub">No attendance</td></tr>'; }).catch(function(e){ $('adminAtt').innerHTML='<tr><td colspan="4" class="sub">'+esc(e.message)+'</td></tr>'; });
+  loadGlobalStats();
+}
+function downloadAllCSV(){
+  if(demoMode){ var csv='Scholar,Name,Subject,Time\n'+demo.attendance.map(function(a){return [a.scholarNo,a.name,a.subject,a.timeStr].join(',')}).join('\n'); dl(csv,'AttendMark-ALL.csv'); return; }
+  db.collection('attendance').get().then(function(s){ var rows=['Scholar,Name,Subject,Time']; s.forEach(function(d){ var a=d.data(); rows.push([a.scholarNo,a.name,a.subject,a.markedAt&&a.markedAt.toDate?a.markedAt.toDate().toLocaleString('en-IN'):''].join(',')); }); dl(rows.join('\n'),'AttendMark-ALL.csv'); });
+}
+showRole('teacher');
+</script>
+</body>
+</html>
