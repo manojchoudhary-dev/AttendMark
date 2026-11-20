@@ -94,6 +94,13 @@ th{font-size:11.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--mu
 .badge{display:inline-flex;padding:4px 10px;border-radius:999px;font-size:12px;font-weight:700;background:var(--mintbg);color:var(--mint);border:1px solid #bbf7d0}
 .badge.off{background:var(--pinkbg);color:var(--pink);border-color:#fecaca}
 .badge.amber{background:var(--amberbg);color:var(--amber);border-color:#fde68a}
+.badge.flagged{background:#dc2626;color:#fff;border-color:#991b1b;letter-spacing:.02em}
+.badge.flag-count{background:var(--pinkbg);color:var(--pink);border-color:#fecaca}
+.flagged-card{border:2px solid #fecaca;background:#fffafa}
+.flagged-card h3{color:#991b1b;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.flag-row td{background:#fef2f2}
+.flag-reason{color:#7f1d1d;font-size:13px}
+.detention-badge{display:inline-flex;padding:4px 9px;border-radius:6px;font-size:11px;font-weight:800;letter-spacing:.04em;background:#dc2626;color:#fff;border:1px solid #991b1b;white-space:nowrap}
 .alert{padding:14px 16px;margin:14px 0;font-size:14px;border:1px solid;border-radius:8px}
 .alert.ok{background:var(--mintbg);color:#14532d;border-color:#bbf7d0}
 .alert.err{background:var(--pinkbg);color:#7f1d1d;border-color:#fecaca}
@@ -297,6 +304,12 @@ details{margin-top:12px} summary{cursor:pointer;font-weight:700;padding:10px 0;c
         <div style="overflow-x:auto"><table><thead><tr><th>#</th><th>Student</th><th>Scholar No.</th><th>Time</th><th>Via</th></tr></thead><tbody id="regBody"><tr><td colspan="5" class="sub">No entries yet — when a student marks attendance, it will appear here live.</td></tr></tbody></table></div>
       </div>
 
+      <div class="card flagged-card" id="flaggedPanel" style="margin-top:16px">
+        <h3>🚩 Flagged Attempts <span class="badge flag-count" id="flaggedCountBadge">0 flags</span></h3>
+        <p class="sub" style="margin:6px 0 0">A flag is recorded only when a second form is actually submitted — a duplicate scholar number, or a second entry from a device that already marked. Opening the link again does not create a flag. Flagged students are marked for detention review by the teacher; the system records the attempt with full details and does not itself take action.</p>
+        <div id="flaggedBody" style="margin-top:12px"><p class="sub">No flagged attempts in this session.</p></div>
+      </div>
+
       <div class="card" style="margin-top:16px"><h3>My Past Sessions</h3><div id="pastSessions"><p class="sub">Loading…</p></div></div>
     </div>
   </section>
@@ -318,6 +331,9 @@ details{margin-top:12px} summary{cursor:pointer;font-weight:700;padding:10px 0;c
         <h3 style="margin-top:22px">All Teachers</h3><div style="overflow-x:auto"><table><thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Joined</th></tr></thead><tbody id="adminTeachers"></tbody></table></div>
         <h3 style="margin-top:22px">All Sessions (every teacher)</h3><div style="overflow-x:auto"><table><thead><tr><th>Subject</th><th>Teacher</th><th>Section • Room</th><th>Code</th><th>Status</th><th>Date</th></tr></thead><tbody id="adminSessions"></tbody></table></div>
         <h3 style="margin-top:22px">Recent Attendance (latest 30)</h3><div style="overflow-x:auto"><table><thead><tr><th>Student</th><th>Scholar</th><th>Session</th><th>Time</th></tr></thead><tbody id="adminAtt"></tbody></table></div>
+        <h3 style="margin-top:22px;color:#991b1b">🚩 Flagged Attempts — For Detention <span class="badge flag-count" id="adminFlaggedCount">0 flags</span></h3>
+        <p class="sub">Second submissions recorded across sessions — duplicate scholar numbers and second entries attempted from a device that already marked.</p>
+        <div style="overflow-x:auto"><table><thead><tr><th>Attempted Scholar</th><th>Name Typed</th><th>Session</th><th>Time</th><th>Reason</th><th>Status</th></tr></thead><tbody id="adminFlagged"><tr><td colspan="6" class="sub">No flagged attempts yet.</td></tr></tbody></table></div>
       </div>
     </div>
   </section>
@@ -371,6 +387,7 @@ details{margin-top:12px} summary{cursor:pointer;font-weight:700;padding:10px 0;c
       <li><b>Attendance records:</b> when a student marks attendance, the system stores the student's name, scholar number, the session and subject, the time of marking, and how it was marked (QR/code or added manually by the teacher). If the teacher has enabled the location check for that session, the record also stores the student's location and its distance from the classroom location, used only to verify the student was in the classroom area.</li>
       <li><b>Sessions:</b> subject, section/class, room, session codes, and the teacher's email address used to send the register. When the location check is on, the session also stores the classroom location captured from the teacher's device at the start of the session.</li>
       <li><b>Device lock flag:</b> after a successful mark, a small flag is stored in the student's own browser (local storage) holding only the scholar number and the time, keyed to that session. It never leaves the device, is not sent to any server, and exists only so the same device cannot mark a second time in the same session.</li>
+      <li><b>Flagged attempts:</b> if a second form is actually submitted in a session — the same scholar number again, or a second entry from a device that already marked a different scholar — the system stores a flagged attempt record: the session, the attempted scholar number and name typed, the scholar already marked from that device (for device attempts), the type and reason, and the time. Merely opening the link again does not create a flagged record. Flagged records are visible to the teacher for that session and to authorised admins, are included in the CSV and email register as FLAGGED rows, and are labelled for detention review by the teacher.</li>
     </ul>
     <h3>How the data is used</h3>
     <p>Data is used only to run attendance: showing the teacher a live register, keeping a history of past sessions, producing the CSV register and the email-ready register, and letting authorised admins oversee the system. Nothing else.</p>
@@ -408,6 +425,7 @@ details{margin-top:12px} summary{cursor:pointer;font-weight:700;padding:10px 0;c
     <ul>
       <li>Students may mark attendance only for themselves, and only while physically present in the classroom during a live session.</li>
       <li>Marking attendance for another student (proxy marking), sharing the rotating code outside the classroom, or marking from outside the class is prohibited. The rotating code, the one-entry-per-scholar-number rule and the “Already marked” block exist to prevent this, and a teacher may treat a blocked or false entry as absent.</li>
+      <li>A second submission — submitting the same scholar number twice, or submitting a second entry from a device that already marked — is recorded as a flagged attempt in the teacher's register, shown with a red “FLAGGED — FOR DETENTION” mark, and included as a FLAGGED row in the CSV and email register. The system flags the attempt with full details; any detention or follow-up action is the teacher's decision.</li>
       <li>If a student has no phone or no connectivity, the teacher may add them manually; the teacher is responsible for the accuracy of manual entries.</li>
       <li>If a session has the location check on, a student must allow location access and be within 150 metres of the classroom location to mark present; a mark attempted from outside that area is rejected.</li>
     </ul>
@@ -431,7 +449,7 @@ var ADMIN_EMAILS=["founder@slopemaps.in","hello@slopemaps.in","admin@attendmark.
 var auth=null,db=null,fbOk=false,demoMode=false;
 var ROTATE_SECONDS=25;
 var currentUser=null,userRole='teacher',activeSession=null,rotTimer=null,countTimer=null,secondsLeft=ROTATE_SECONDS;
-var demo={sessions:[],attendance:[],users:[],seq:1};
+var demo={sessions:[],attendance:[],users:[],seq:1,flagged:[]};
 try{ firebase.initializeApp(firebaseConfig); auth=firebase.auth(); db=firebase.firestore(); fbOk=true; }catch(e){ setConn(false,'Firebase init failed'); }
 
 function setConn(ok,txt){ document.getElementById('connDot').className='dot'+(ok?' live':''); document.getElementById('connText').textContent=txt; }
@@ -517,7 +535,7 @@ function startLive(sess){
   activeSession=sess; $('liveStatus').textContent='LIVE'; $('liveStatus').className='badge';
   $('liveMeta').textContent=sess.subject+' • '+sess.section+' • '+sess.room+' • '+sess.dateStr;
   $('bigCode').textContent=sess.code; $('rotCode').textContent=sess.rotatingCode; $('qrWrap').classList.remove('hidden');
-  renderQR(); startRotation(); listenAttendance(); $('liveCount').textContent='0';
+  renderQR(); startRotation(); listenAttendance(); listenFlagged(); $('liveCount').textContent='0';
   var locNote=sess.locationCheck? ' <b>Location check ON:</b> a student can mark present only within '+LOC_RADIUS_M+' m of '+(sess.locDemo?'the simulated classroom location (Demo Mode).':'the classroom location saved from this device.') : ' Location check is OFF for this session.';
   var deniedNote=sess._locDenied? '<div class="alert err" style="margin-top:10px"><b>Location permission was denied</b> (or location was unavailable), so this session started with the location check OFF — students will not be location-checked. To use the check, allow location access in your browser and start a new session.</div>' : '';
   $('sessMsg').innerHTML='<div class="alert ok pop"><b>Session LIVE!</b> Show this screen on the projector. The QR code refreshes every 25 seconds with the new rotating code inside it — students scan it and both codes arrive pre-filled; they only type their name and scholar number.'+locNote+'</div>'+deniedNote;
@@ -597,19 +615,130 @@ function showDeviceLocked(lock){
   $('sstep1').classList.add('on'); $('sstep2').classList.add('on'); $('sstep3').classList.add('on');
 }
 
+// FLAGGED ATTEMPTS — red mark + detention flag on a SECOND submit.
+// A flag is created ONLY inside markAttendance() on an actual submit:
+//  (a) duplicate — submitted scholar number is already marked in this session
+//  (b) device — submitting device already marked a DIFFERENT scholar in this session
+// Opening / reopening the link or viewing the locked screen never creates a flag.
+function flaggedReasonText(type, alreadyMarkedScholar){
+  if(type==='device') return 'Second entry attempted from a device that already marked '+(alreadyMarkedScholar||'');
+  return 'Same scholar number submitted twice';
+}
+function normalizeFlag(x){
+  if(!x) return x;
+  x.attemptedScholar=x.attemptedScholar||x.scholarNo||x.attemptedScholarNo||'';
+  x.attemptedName=x.attemptedName||x.name||'';
+  x.type=x.type||x.flagType||'duplicate';
+  x.reason=x.reason||flaggedReasonText(x.type, x.alreadyMarkedScholar||x.originalScholar||'');
+  x.alreadyMarkedScholar=x.alreadyMarkedScholar||x.originalScholar||'';
+  return x;
+}
+function flagTimeStr(f){
+  if(!f) return '';
+  if(f.flaggedAt && f.flaggedAt.toDate) return f.flaggedAt.toDate().toLocaleString('en-IN');
+  if(f.flaggedAt) { try{ return new Date(f.flaggedAt).toLocaleString('en-IN'); }catch(e){} }
+  if(f.createdAt && f.createdAt.toDate) return f.createdAt.toDate().toLocaleString('en-IN');
+  return f.timeStr||'';
+}
+function flagTimeShort(f){
+  if(!f) return '';
+  if(f.flaggedAt && f.flaggedAt.toDate) return f.flaggedAt.toDate().toLocaleTimeString('en-IN');
+  if(f.flaggedAt) { try{ return new Date(f.flaggedAt).toLocaleTimeString('en-IN'); }catch(e){} }
+  return f.timeStr||'';
+}
+function currentFlags(){
+  if(!activeSession) return [];
+  if(demoMode) return (demo.flagged||[]).filter(function(f){return f.sessionId===activeSession.id}).map(normalizeFlag);
+  return (activeSession._flags||[]).map(normalizeFlag);
+}
+function recordFlaggedAttempt(sess, attemptedName, attemptedScholar, type, alreadyMarkedScholar){
+  if(!sess) return null;
+  var now=new Date();
+  var reason=flaggedReasonText(type, alreadyMarkedScholar);
+  var rec={sessionId:sess.id||'',sessionCode:sess.code||sess.sessionCode||'',subject:sess.subject||'',attemptedName:attemptedName||'',attemptedScholar:attemptedScholar||'',name:attemptedName||'',scholarNo:attemptedScholar||'',alreadyMarkedScholar:alreadyMarkedScholar||'',originalScholar:alreadyMarkedScholar||'',type:type||'duplicate',flagType:type||'duplicate',reason:reason,flaggedAt:now,createdAt:now,timeStr:now.toLocaleTimeString('en-IN')};
+  if(demoMode){
+    if(!demo.flagged) demo.flagged=[];
+    demo.flagged.push(rec);
+    if(activeSession && activeSession.id===sess.id) renderFlaggedPanel(currentFlags());
+    try{ renderAdminFlagged(); }catch(e){}
+    return rec;
+  }
+  if(db){
+    var payload={sessionId:rec.sessionId,sessionCode:rec.sessionCode,subject:rec.subject,attemptedName:rec.attemptedName,attemptedScholar:rec.attemptedScholar,name:rec.attemptedName,scholarNo:rec.attemptedScholar,alreadyMarkedScholar:rec.alreadyMarkedScholar||'',type:rec.type,flagType:rec.type,reason:rec.reason,timeStr:rec.timeStr,flaggedAt:firebase.firestore.FieldValue.serverTimestamp()};
+    db.collection('flaggedAttempts').add(payload).catch(function(){});
+    if(activeSession && activeSession.id===sess.id){
+      if(!activeSession._flags) activeSession._flags=[];
+      activeSession._flags.push(rec);
+      renderFlaggedPanel(activeSession._flags);
+    }
+  }
+  return rec;
+}
+function renderFlaggedPanel(arr){
+  arr=(arr||[]).map(normalizeFlag);
+  var badge=$('flaggedCountBadge'); if(badge){ badge.textContent=arr.length+(arr.length===1?' flag':' flags'); }
+  var body=$('flaggedBody'); if(!body) return;
+  if(!arr.length){ body.innerHTML='<p class="sub">No flagged attempts in this session.</p>'; return; }
+  var sorted=arr.slice().sort(function(a,b){ var ta=a.flaggedAt&&a.flaggedAt.toDate?a.flaggedAt.toDate().getTime():(a.flaggedAt?new Date(a.flaggedAt).getTime():0); var tb=b.flaggedAt&&b.flaggedAt.toDate?b.flaggedAt.toDate().getTime():(b.flaggedAt?new Date(b.flaggedAt).getTime():0); return ta-tb; });
+  var h='<div style="overflow-x:auto"><table><thead><tr><th>#</th><th>Attempted Scholar</th><th>Name Typed</th><th>Time</th><th>Reason</th><th>Status</th></tr></thead><tbody>';
+  sorted.forEach(function(f,i){ h+='<tr class="flag-row"><td>'+(i+1)+'</td><td><b style="color:#991b1b">'+esc(f.attemptedScholar)+'</b></td><td>'+esc(f.attemptedName)+'</td><td>'+esc(flagTimeShort(f))+'</td><td><span class="flag-reason">'+esc(f.reason)+'</span></td><td><span class="detention-badge">FLAGGED — FOR DETENTION</span></td></tr>'; });
+  h+='</tbody></table></div>';
+  body.innerHTML=h;
+  if(activeSession) activeSession._flags=arr;
+}
+function listenFlagged(){
+  if(!activeSession) return;
+  if(demoMode){ renderFlaggedPanel(currentFlags()); return; }
+  if(!db) return;
+  db.collection('flaggedAttempts').where('sessionId','==',activeSession.id).onSnapshot(function(snap){ var arr=[]; snap.forEach(function(d){ var x=d.data(); x.id=d.id; arr.push(normalizeFlag(x)); }); arr.sort(function(a,b){ var ta=a.flaggedAt&&a.flaggedAt.toDate?a.flaggedAt.toDate().getTime():0; var tb=b.flaggedAt&&b.flaggedAt.toDate?b.flaggedAt.toDate().getTime():0; return ta-tb; }); if(activeSession) activeSession._flags=arr; renderFlaggedPanel(arr); },function(e){ var b=$('flaggedBody'); if(b) b.innerHTML='<p class="sub" style="color:var(--pink)">Flagged attempts could not load: '+esc(e.message)+'</p>'; });
+}
+function renderAdminFlagged(){
+  var tbody=$('adminFlagged'); var countEl=$('adminFlaggedCount');
+  if(demoMode){
+    var arr=(demo.flagged||[]).map(normalizeFlag);
+    if(countEl) countEl.textContent=arr.length+(arr.length===1?' flag':' flags');
+    if(!tbody) return;
+    if(!arr.length){ tbody.innerHTML='<tr><td colspan="6" class="sub">No flagged attempts yet.</td></tr>'; return; }
+    tbody.innerHTML=arr.slice().reverse().slice(0,30).map(function(f){ var sessLabel=f.subject? (f.subject+' • '+f.sessionCode) : f.sessionCode; return '<tr class="flag-row"><td><b style="color:#991b1b">'+esc(f.attemptedScholar)+'</b></td><td>'+esc(f.attemptedName)+'</td><td>'+esc(sessLabel)+'</td><td>'+esc(flagTimeStr(f))+'</td><td><span class="flag-reason">'+esc(f.reason)+'</span></td><td><span class="detention-badge">FLAGGED — FOR DETENTION</span></td></tr>'; }).join('');
+    return;
+  }
+  if(!db||!tbody) return;
+  db.collection('flaggedAttempts').orderBy('flaggedAt','desc').limit(30).get().then(function(s){ var arr=[]; s.forEach(function(d){ arr.push(normalizeFlag(d.data())); }); if(countEl) countEl.textContent=arr.length+(arr.length===1?' flag':' flags'); if(!arr.length){ tbody.innerHTML='<tr><td colspan="6" class="sub">No flagged attempts yet.</td></tr>'; return; } tbody.innerHTML=arr.map(function(f){ var sessLabel=f.subject? (f.subject+' • '+f.sessionCode) : (f.sessionCode||f.sessionId); return '<tr class="flag-row"><td><b style="color:#991b1b">'+esc(f.attemptedScholar)+'</b></td><td>'+esc(f.attemptedName)+'</td><td>'+esc(sessLabel)+'</td><td>'+esc(flagTimeStr(f))+'</td><td><span class="flag-reason">'+esc(f.reason)+'</span></td><td><span class="detention-badge">FLAGGED — FOR DETENTION</span></td></tr>'; }).join(''); }).catch(function(){ // fallback without orderBy if timestamps pending
+    db.collection('flaggedAttempts').limit(30).get().then(function(s){ var arr=[]; s.forEach(function(d){ arr.push(normalizeFlag(d.data())); }); if(countEl) countEl.textContent=arr.length+(arr.length===1?' flag':' flags'); tbody.innerHTML=arr.length? arr.map(function(f){ var sessLabel=f.subject? (f.subject+' • '+f.sessionCode) : (f.sessionCode||f.sessionId); return '<tr class="flag-row"><td><b style="color:#991b1b">'+esc(f.attemptedScholar)+'</b></td><td>'+esc(f.attemptedName)+'</td><td>'+esc(sessLabel)+'</td><td>'+esc(flagTimeStr(f))+'</td><td><span class="flag-reason">'+esc(f.reason)+'</span></td><td><span class="detention-badge">FLAGGED — FOR DETENTION</span></td></tr>'; }).join('') : '<tr><td colspan="6" class="sub">No flagged attempts yet.</td></tr>'; }).catch(function(e){ tbody.innerHTML='<tr><td colspan="6" class="sub">'+esc(e.message)+'</td></tr>'; });
+  });
+}
+
 // STUDENT MARK
 function markAttendance(){
   var sc=$('stuSessionCode').value.trim(), rc=$('stuRotCode').value.trim(), name=$('stuName').value.trim(), sch=$('stuScholar').value.trim().toUpperCase();
   if(!sc||!name||!sch){ $('stuMsg').innerHTML='<div class="alert err">Session code, name, and scholar number — all three are required.</div>'; return; }
   if(!$('stuInClass').checked){ $('stuMsg').innerHTML='<div class="alert err">Please confirm you are in the classroom — attendance will not be marked otherwise.</div>'; return; }
   var earlyLock=deviceLockGet(null, sc);
-  if(earlyLock){ showDeviceLocked(earlyLock); return; }
+  var pendingDeviceLock=null;
+  if(earlyLock){
+    if(demoMode){
+      var earlySess=demo.sessions.find(function(s){return s.code===sc});
+      if(earlySess){
+        var earlyType=(sch && earlyLock.scholar && sch!==earlyLock.scholar) ? 'device' : 'duplicate';
+        // If the attempted scholar is a different person, it is a device proxy attempt;
+        // if it is the same scholar, it is a duplicate submission.
+        // Only flag when it is a genuine second submit for an existing session.
+        var isDupDemo=demo.attendance.some(function(a){return a.sessionId===earlySess.id && a.scholarNo===sch});
+        if(earlyType==='device' || isDupDemo) recordFlaggedAttempt(earlySess, name, sch, earlyType, earlyLock.scholar);
+      }
+      showDeviceLocked(earlyLock); return;
+    } else {
+      pendingDeviceLock=earlyLock;
+      // Live: do not return yet — resolve the session first so the flag can be
+      // stored with its sessionId, then the device-lock branch below flags it.
+    }
+  }
   $('sstep2').classList.add('on');
   if(demoMode){
     var sess=demo.sessions.find(function(s){return s.code===sc && s.active});
     if(!sess){ $('stuMsg').innerHTML='<div class="alert err">Session not found or it has ended. In Demo mode, start a session from the Teacher panel first.</div>'; return; }
     if(rc && rc!==sess.rotatingCode){ $('stuMsg').innerHTML='<div class="alert err">Rotating code is wrong / expired. Check the current code on the teacher\'s screen.</div>'; return; }
-    if(demo.attendance.some(function(a){return a.sessionId===sess.id && a.scholarNo===sch})){ $('stuMsg').innerHTML='<div class="alert err"><b>Already marked!</b> Attendance for this scholar number is already marked in this session — proxy blocked.</div>'; return; }
+    if(demo.attendance.some(function(a){return a.sessionId===sess.id && a.scholarNo===sch})){ recordFlaggedAttempt(sess, name, sch, 'duplicate', ''); $('stuMsg').innerHTML='<div class="alert err"><b>Already marked!</b> Attendance for this scholar number is already marked in this session — proxy blocked.</div>'; return; }
     var rec={sessionId:sess.id,sessionCode:sess.code,subject:sess.subject,name:name,scholarNo:sch,via:'QR/Code',timeStr:new Date().toLocaleTimeString('en-IN'),markedAt:new Date(),demo:true};
     if(sess.locationCheck){ rec.distanceM=8+Math.floor(Math.random()*38); rec.stuLat=sess.locLat; rec.stuLng=sess.locLng; } // Demo Mode: simulated distance — real GPS is never requested.
     demo.attendance.push(rec); deviceLockSet(sess, sch); $('sstep3').classList.add('on');
@@ -623,10 +752,10 @@ function markAttendance(){
     if(snap.empty){ $('stuMsg').innerHTML='<div class="alert err">No active session found. Please check the code with your teacher again.</div>'; return; }
     var doc=snap.docs[0], sess=doc.data(); sess.id=doc.id;
     if(rc && rc!==sess.rotatingCode){ $('stuMsg').innerHTML='<div class="alert err">Rotating code is expired / wrong — check the current code on the teacher\'s screen (it changes every 25 seconds).</div>'; return; }
-    var devLock=deviceLockGet(sess.id, sc);
-    if(devLock){ showDeviceLocked(devLock); return; }
+    var devLock=deviceLockGet(sess.id, sc) || pendingDeviceLock;
+    if(devLock){ var devType=(sch && devLock.scholar && sch!==devLock.scholar) ? 'device' : 'duplicate'; recordFlaggedAttempt(sess, name, sch, devType, devLock.scholar); showDeviceLocked(devLock); return; }
     db.collection('attendance').where('sessionId','==',sess.id).where('scholarNo','==',sch).limit(1).get().then(function(dup){
-      if(!dup.empty){ $('stuMsg').innerHTML='<div class="alert err"><b>Already marked!</b> This scholar number is already marked present in this session.</div>'; return; }
+      if(!dup.empty){ recordFlaggedAttempt(sess, name, sch, 'duplicate', ''); $('stuMsg').innerHTML='<div class="alert err"><b>Already marked!</b> This scholar number is already marked present in this session.</div>'; return; }
       function saveAtt(extra){
         var payload={sessionId:sess.id,sessionCode:sc,subject:sess.subject,teacherId:sess.teacherId,name:name,scholarNo:sch,via:'QR/Code',markedAt:firebase.firestore.FieldValue.serverTimestamp()};
         if(extra){ payload.distanceM=extra.distanceM; payload.stuLat=extra.lat; payload.stuLng=extra.lng; }
@@ -655,26 +784,47 @@ function manualAdd(){
 
 // CSV & EMAIL
 function currentAtt(){ return (activeSession && activeSession._att) ? activeSession._att : (demoMode? demo.attendance.filter(function(a){return activeSession&&a.sessionId===activeSession.id}) : []); }
+function csvEscRow(row){ return row.map(function(x){return '"'+String(x==null?'':x).replace(/"/g,'""')+'"'}).join(','); }
 function downloadCSV(){
-  var arr=currentAtt(); if(!activeSession||!arr.length){ alertBox('sessMsg','The register is empty — let some students mark attendance first.'); return; }
-  var csv='Scholar Number,Name,Time,Subject,Section,Date,Distance (m)\n'+arr.map(function(a){ var t=a.markedAt&&a.markedAt.toDate?a.markedAt.toDate().toLocaleString('en-IN'):(a.timeStr||''); return [a.scholarNo,a.name,t,activeSession.subject,activeSession.section,activeSession.dateStr,(a.distanceM!=null?Math.round(a.distanceM):'')].map(function(x){return '"'+String(x||'').replace(/"/g,'""')+'"'}).join(','); }).join('\n');
+  var arr=currentAtt(); var flags=currentFlags();
+  if(!activeSession||(!arr.length && !flags.length)){ alertBox('sessMsg','The register is empty — let some students mark attendance first.'); return; }
+  var header='Scholar Number,Name,Time,Subject,Section,Date,Distance (m),Status,Reason';
+  var rows=[];
+  arr.forEach(function(a){ var t=a.markedAt&&a.markedAt.toDate?a.markedAt.toDate().toLocaleString('en-IN'):(a.timeStr||''); rows.push(csvEscRow([a.scholarNo,a.name,t,activeSession.subject,activeSession.section,activeSession.dateStr,(a.distanceM!=null?Math.round(a.distanceM):''),'PRESENT',''])); });
+  flags.forEach(function(f){ var ft=flagTimeStr(f); rows.push(csvEscRow([f.attemptedScholar,f.attemptedName,ft,activeSession.subject,activeSession.section,activeSession.dateStr,'','FLAGGED',f.reason+' — FLAGGED FOR DETENTION'])); });
+  var csv=header+'\n'+rows.join('\n');
   dl(csv,'AttendMark-'+activeSession.code+'.csv');
 }
 function dl(text,filename){ var b=new Blob([text],{type:'text/csv'}); var a=document.createElement('a'); a.href=URL.createObjectURL(b); a.download=filename; a.click(); }
 function emailRegister(){
-  var arr=currentAtt(); if(!activeSession||!arr.length){ alertBox('sessMsg','The register is empty.'); return; }
+  var arr=currentAtt(); var flags=currentFlags();
+  if(!activeSession||(!arr.length && !flags.length)){ alertBox('sessMsg','The register is empty.'); return; }
   downloadCSV();
   var to=activeSession.teacherEmail||currentUser.email;
-  var subject=encodeURIComponent('AttendMark Register — '+activeSession.subject+' • '+activeSession.dateStr+' • '+arr.length+' present');
-  var body=encodeURIComponent('Hello,\n\nAttendance register for '+activeSession.subject+' ('+activeSession.section+', '+activeSession.room+')\nDate: '+activeSession.dateStr+'\nPresent: '+arr.length+'\n\n'+arr.map(function(a,i){return (i+1)+'. '+a.scholarNo+' — '+a.name}).join('\n')+'\n\nPlease attach the CSV file that was just downloaded.\n— AttendMark');
+  var flagCount=flags.length;
+  var subjectText='AttendMark Register — '+activeSession.subject+' • '+activeSession.dateStr+' • '+arr.length+' present'+(flagCount? ' • '+flagCount+' flagged':'');
+  var subject=encodeURIComponent(subjectText);
+  var presentList=arr.length? arr.map(function(a,i){return (i+1)+'. '+a.scholarNo+' — '+a.name}).join('\n') : 'No present entries.';
+  var flagSection='';
+  if(flagCount){
+    flagSection='\n\n--- FLAGGED ATTEMPTS — FOR DETENTION ('+flagCount+') ---\nThese second submissions were blocked and flagged. The system records the attempt with full details; detention / follow-up is the teacher\'s decision.\n'+flags.map(function(f,i){ return (i+1)+'. '+f.attemptedScholar+' — '+f.attemptedName+' — '+flagTimeStr(f)+' — '+f.reason+' — Status: FLAGGED'; }).join('\n');
+  } else {
+    flagSection='\n\nFlagged attempts: 0 — no duplicate or device-proxy second submissions were recorded for this session.';
+  }
+  var bodyText='Hello,\n\nAttendance register for '+activeSession.subject+' ('+activeSession.section+', '+activeSession.room+')\nDate: '+activeSession.dateStr+'\nPresent: '+arr.length+'\nFlagged attempts: '+flagCount+'\n\n'+presentList+flagSection+'\n\nThe CSV file that was just downloaded contains the same data — present entries marked PRESENT and flagged attempts marked FLAGGED.\nPlease attach the CSV file that was just downloaded.\n— AttendMark';
+  var body=encodeURIComponent(bodyText);
   window.location.href='mailto:'+encodeURIComponent(to)+'?subject='+subject+'&body='+body;
 }
 
 // PAST & GLOBAL
 function loadPastSessions(){
-  if(demoMode){ $('pastSessions').innerHTML=demo.sessions.length? demo.sessions.map(function(s){return '<div class="list"><li><span><b>'+esc(s.subject)+'</b><br><span class="sub">'+esc(s.section)+' • '+esc(s.dateStr)+' • Code '+esc(s.code)+'</span></span><span class="badge '+(s.active?'':'off')+'">'+(s.active?'LIVE':'Ended')+'</span></li></div>'}).join(''):'<p class="sub">No sessions yet.</p>'; return; }
+  if(demoMode){ $('pastSessions').innerHTML=demo.sessions.length? demo.sessions.map(function(s){ var fc=(demo.flagged||[]).filter(function(f){return f.sessionId===s.id}).length; var flagBadge=fc? ' <span class="badge flagged">'+fc+' FLAGGED — FOR DETENTION</span>':''; return '<div class="list"><li><span><b>'+esc(s.subject)+'</b>'+flagBadge+'<br><span class="sub">'+esc(s.section)+' • '+esc(s.dateStr)+' • Code '+esc(s.code)+(fc? ' • '+fc+' flagged attempt'+(fc===1?'':'s'):'')+'</span></span><span class="badge '+(s.active?'':'off')+'">'+(s.active?'LIVE':'Ended')+'</span></li></div>'}).join(''):'<p class="sub">No sessions yet.</p>'; return; }
   if(!db||!currentUser) return;
-  db.collection('sessions').where('teacherId','==',currentUser.uid).get().then(function(snap){ var docs=[]; snap.forEach(function(d){ docs.push(d.data()); }); docs.sort(function(a,b){ var ta=a.createdAt&&a.createdAt.toDate?a.createdAt.toDate().getTime():0; var tb=b.createdAt&&b.createdAt.toDate?b.createdAt.toDate().getTime():0; return tb-ta; }); docs=docs.slice(0,20); var h=''; docs.forEach(function(s){ h+='<div class="list"><li><span><b>'+esc(s.subject)+'</b><br><span class="sub">'+esc(s.section||'')+' • '+esc(s.dateStr||'')+' • Code '+esc(s.code)+'</span></span><span class="badge '+(s.active?'':'off')+'">'+(s.active?'LIVE':'Ended')+'</span></li></div>'; }); $('pastSessions').innerHTML=h||'<p class="sub">No sessions yet.</p>'; }).catch(function(e){ $('pastSessions').innerHTML='<p class="sub">Sessions failed to load: '+esc(e.message)+'</p>'; });
+  db.collection('sessions').where('teacherId','==',currentUser.uid).get().then(function(snap){ var docs=[]; snap.forEach(function(d){ var x=d.data(); x._id=d.id; docs.push(x); }); docs.sort(function(a,b){ var ta=a.createdAt&&a.createdAt.toDate?a.createdAt.toDate().getTime():0; var tb=b.createdAt&&b.createdAt.toDate?b.createdAt.toDate().getTime():0; return tb-ta; }); docs=docs.slice(0,20);
+    // Try to attach flag counts per session (best-effort, does not block the list)
+    db.collection('flaggedAttempts').get().then(function(fs){ var counts={}; fs.forEach(function(fd){ var fdta=fd.data(); counts[fdta.sessionId]=(counts[fdta.sessionId]||0)+1; }); renderPast(docs,counts); }).catch(function(){ renderPast(docs,{}); });
+    function renderPast(list,counts){ var h=''; list.forEach(function(s){ var fc=counts[s._id]||0; var flagBadge=fc? ' <span class="badge flagged">'+fc+' FLAGGED — FOR DETENTION</span>':''; h+='<div class="list"><li><span><b>'+esc(s.subject)+'</b>'+flagBadge+'<br><span class="sub">'+esc(s.section||'')+' • '+esc(s.dateStr||'')+' • Code '+esc(s.code)+(fc? ' • '+fc+' flagged attempt'+(fc===1?'':'s'):'')+'</span></span><span class="badge '+(s.active?'':'off')+'">'+(s.active?'LIVE':'Ended')+'</span></li></div>'; }); $('pastSessions').innerHTML=h||'<p class="sub">No sessions yet.</p>'; }
+  }).catch(function(e){ $('pastSessions').innerHTML='<p class="sub">Sessions failed to load: '+esc(e.message)+'</p>'; });
 }
 function loadGlobalStats(){
   if(demoMode){ updateStatsDemo(); return; }
@@ -694,17 +844,19 @@ function renderAdminGate(){
 function loadAdmin(){
   if(demoMode){ $('aTeachers').textContent=demo.users.length; $('aSessions').textContent=demo.sessions.length; $('aPresent').textContent=demo.attendance.length; $('aBlocked').textContent=demo.sessions.filter(function(s){return s.active}).length;
     $('adminTeachers').innerHTML=demo.users.map(function(u){return '<tr><td><b>'+esc(u.name)+'</b></td><td>'+esc(u.email)+'</td><td><span class="badge">'+esc(u.role)+'</span></td><td>'+new Date(u.createdAt).toLocaleDateString('en-IN')+'</td></tr>'}).join('');
-    $('adminSessions').innerHTML=demo.sessions.map(function(s){return '<tr><td>'+esc(s.subject)+'</td><td>'+esc(s.teacherName)+'</td><td>'+esc(s.section)+' • '+esc(s.room)+'</td><td>'+esc(s.code)+'</td><td>'+(s.active?'LIVE':'Ended')+'</td><td>'+esc(s.dateStr)+'</td></tr>'}).join('')||'<tr><td colspan="6" class="sub">No sessions yet</td></tr>';
-    $('adminAtt').innerHTML=demo.attendance.slice(-30).reverse().map(function(a){return '<tr><td>'+esc(a.name)+'</td><td>'+esc(a.scholarNo)+'</td><td>'+esc(a.subject||a.sessionId)+'</td><td>'+esc(a.timeStr||'')+'</td></tr>'}).join('')||'<tr><td colspan="4" class="sub">No attendance yet</td></tr>'; return; }
+    $('adminSessions').innerHTML=demo.sessions.map(function(s){ var fc=(demo.flagged||[]).filter(function(f){return f.sessionId===s.id}).length; return '<tr><td>'+esc(s.subject)+(fc?' <span class="badge flagged">'+fc+' FLAGGED</span>':'')+'</td><td>'+esc(s.teacherName)+'</td><td>'+esc(s.section)+' • '+esc(s.room)+'</td><td>'+esc(s.code)+'</td><td>'+(s.active?'LIVE':'Ended')+'</td><td>'+esc(s.dateStr)+'</td></tr>'}).join('')||'<tr><td colspan="6" class="sub">No sessions yet</td></tr>';
+    $('adminAtt').innerHTML=demo.attendance.slice(-30).reverse().map(function(a){return '<tr><td>'+esc(a.name)+'</td><td>'+esc(a.scholarNo)+'</td><td>'+esc(a.subject||a.sessionId)+'</td><td>'+esc(a.timeStr||'')+'</td></tr>'}).join('')||'<tr><td colspan="4" class="sub">No attendance yet</td></tr>'; renderAdminFlagged(); return; }
   if(!db) return;
   db.collection('users').get().then(function(s){ $('aTeachers').textContent=s.size; var h=''; s.forEach(function(d){ var u=d.data(); h+='<tr><td><b>'+esc(u.name||'')+'</b></td><td>'+esc(u.email)+'</td><td><span class="badge">'+esc(u.role||'teacher')+'</span></td><td>'+(u.createdAt&&u.createdAt.toDate?u.createdAt.toDate().toLocaleDateString('en-IN'):'')+'</td></tr>'; }); $('adminTeachers').innerHTML=h; });
   db.collection('sessions').orderBy('createdAt','desc').limit(50).get().then(function(s){ $('aSessions').textContent=s.size; var live=0,h=''; s.forEach(function(d){ var x=d.data(); if(x.active) live++; h+='<tr><td>'+esc(x.subject)+'</td><td>'+esc(x.teacherName||'')+'</td><td>'+esc(x.section||'')+' • '+esc(x.room||'')+'</td><td>'+esc(x.code)+'</td><td>'+(x.active?'LIVE':'Ended')+'</td><td>'+esc(x.dateStr||'')+'</td></tr>'; }); $('aBlocked').textContent=live; $('adminSessions').innerHTML=h||'<tr><td colspan="6" class="sub">No sessions</td></tr>'; });
   db.collection('attendance').orderBy('markedAt','desc').limit(30).get().then(function(s){ $('aPresent').textContent=s.size; var h=''; s.forEach(function(d){ var a=d.data(); h+='<tr><td>'+esc(a.name)+'</td><td>'+esc(a.scholarNo)+'</td><td>'+esc(a.subject||'')+'</td><td>'+(a.markedAt&&a.markedAt.toDate?a.markedAt.toDate().toLocaleString('en-IN'):'')+'</td></tr>'; }); $('adminAtt').innerHTML=h||'<tr><td colspan="4" class="sub">No attendance</td></tr>'; }).catch(function(e){ $('adminAtt').innerHTML='<tr><td colspan="4" class="sub">'+esc(e.message)+'</td></tr>'; });
+  renderAdminFlagged();
   loadGlobalStats();
 }
 function downloadAllCSV(){
-  if(demoMode){ var csv='Scholar,Name,Subject,Time\n'+demo.attendance.map(function(a){return [a.scholarNo,a.name,a.subject,a.timeStr].join(',')}).join('\n'); dl(csv,'AttendMark-ALL.csv'); return; }
-  db.collection('attendance').get().then(function(s){ var rows=['Scholar,Name,Subject,Time']; s.forEach(function(d){ var a=d.data(); rows.push([a.scholarNo,a.name,a.subject,a.markedAt&&a.markedAt.toDate?a.markedAt.toDate().toLocaleString('en-IN'):''].join(',')); }); dl(rows.join('\n'),'AttendMark-ALL.csv'); });
+  if(demoMode){ var rows=['Scholar,Name,Subject,Time,Status,Reason']; demo.attendance.forEach(function(a){ rows.push(csvEscRow([a.scholarNo,a.name,a.subject||'',a.timeStr||'','PRESENT',''])); }); (demo.flagged||[]).forEach(function(f){ var nf=normalizeFlag(f); rows.push(csvEscRow([nf.attemptedScholar,nf.attemptedName,nf.subject||'',flagTimeStr(nf),'FLAGGED',nf.reason+' — FLAGGED FOR DETENTION'])); }); dl(rows.join('\n'),'AttendMark-ALL.csv'); return; }
+  // Live: fetch attendance + flaggedAttempts and combine, flagged rows marked FLAGGED
+  Promise.all([db.collection('attendance').get(), db.collection('flaggedAttempts').get().catch(function(){ return {forEach:function(){}}; })]).then(function(results){ var rows=['Scholar,Name,Subject,Time,Status,Reason']; var attSnap=results[0]; attSnap.forEach(function(d){ var a=d.data(); rows.push(csvEscRow([a.scholarNo,a.name,a.subject||'',a.markedAt&&a.markedAt.toDate?a.markedAt.toDate().toLocaleString('en-IN'):'','PRESENT',''])); }); var flagSnap=results[1]; if(flagSnap && flagSnap.forEach){ flagSnap.forEach(function(d){ var f=normalizeFlag(d.data()); rows.push(csvEscRow([f.attemptedScholar,f.attemptedName,f.subject||'',flagTimeStr(f),'FLAGGED',f.reason+' — FLAGGED FOR DETENTION'])); }); } dl(rows.join('\n'),'AttendMark-ALL.csv'); }).catch(function(){ db.collection('attendance').get().then(function(s){ var rows=['Scholar,Name,Subject,Time,Status,Reason']; s.forEach(function(d){ var a=d.data(); rows.push(csvEscRow([a.scholarNo,a.name,a.subject||'',a.markedAt&&a.markedAt.toDate?a.markedAt.toDate().toLocaleString('en-IN'):'','PRESENT',''])); }); dl(rows.join('\n'),'AttendMark-ALL.csv'); }); });
 }
 // LEGAL PANELS (Privacy / Terms)
 function openLegal(which){ var p=$('legal-'+which); if(p){ p.classList.remove('hidden'); p.scrollTop=0; document.body.style.overflow='hidden'; var c=p.querySelector('.legal-close'); if(c) c.focus(); } }
