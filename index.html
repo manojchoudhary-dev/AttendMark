@@ -4,6 +4,7 @@
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
 <meta name="color-scheme" content="light"/>
+<meta name="description" content="AttendMark — a classroom attendance system. Teachers start a session, students mark present by scanning the in-class QR code. Built by Manoj Choudhary for FoCP (CSE-1003)."/>
 <link rel="icon" href="data:,"/>
 <title>AttendMark — Full System</title>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
@@ -107,7 +108,24 @@ th{font-size:11.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--mu
 .list{list-style:none;padding:0;margin:10px 0}
 .list li{padding:12px 0;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:center}
 .pop{animation:none}
-.footer{margin-top:26px;padding:18px 20px;color:var(--muted);font-size:13px}
+.footer{margin-top:26px;padding:22px;color:var(--muted);font-size:13px}
+.footer-grid{display:grid;grid-template-columns:1.2fr 1fr 1fr;gap:20px}
+@media(max-width:760px){.footer-grid{grid-template-columns:1fr}}
+.footer h4{margin:0 0 8px;font-size:13px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink)}
+.footer p{margin:0 0 6px}
+.footer ul{list-style:none;margin:0;padding:0}
+.footer li{margin:0 0 6px}
+.footer a{color:var(--accent);text-decoration:none;font-weight:600}
+.footer a:hover{text-decoration:underline}
+.footer-bottom{border-top:1px solid var(--line);margin-top:18px;padding-top:14px;display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.legal-overlay{position:fixed;inset:0;background:rgba(15,23,42,.55);z-index:50;display:flex;align-items:flex-start;justify-content:center;padding:24px 14px;overflow-y:auto}
+.legal-panel{background:#fff;border-radius:12px;max-width:760px;width:100%;padding:28px;box-shadow:0 20px 50px rgba(15,23,42,.3);margin:auto 0}
+.legal-panel h2{font-size:23px;margin-bottom:4px}
+.legal-panel h3{font-size:16px;margin:20px 0 6px}
+.legal-panel p,.legal-panel li{font-size:14.5px;color:#334155}
+.legal-panel ul{margin:6px 0 6px 18px;padding:0}
+.legal-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+.legal-close{flex:none;width:42px;height:42px;min-height:42px;border-radius:8px;border:1px solid var(--line2);background:#fff;font-size:18px;cursor:pointer;color:var(--ink)}
 code{background:var(--panel2);color:var(--ink);padding:2px 6px;border-radius:6px;font-size:.92em}
 .kbd{font-size:12px}
 details{margin-top:12px} summary{cursor:pointer;font-weight:700;padding:10px 0;color:var(--accent)}
@@ -287,8 +305,104 @@ details{margin-top:12px} summary{cursor:pointer;font-weight:700;padding:10px 0;c
     </div>
   </section>
 
-  <div class="footer">
-    <b>AttendMark</b> • Built by <b>Manoj Choudhary</b> • Scholar No. <b>26U020146</b> • <b>FoCP (CSE-1003)</b> • Backend: Firebase Auth + Firestore.
+  <footer class="footer">
+    <div class="footer-grid">
+      <div>
+        <h4>AttendMark</h4>
+        <p>A classroom attendance system. The teacher starts a session and displays a QR code; students scan it in class to mark themselves present. Records are stored in Firebase (Authentication + Firestore).</p>
+        <p>Built by <b style="color:var(--ink)">Manoj Choudhary</b> • Scholar No. <b style="color:var(--ink)">26U020146</b> • FoCP (CSE-1003)</p>
+      </div>
+      <div>
+        <h4>Legal</h4>
+        <ul>
+          <li><a href="#" onclick="openLegal('privacy');return false;">Privacy Policy</a></li>
+          <li><a href="#" onclick="openLegal('terms');return false;">Terms of Use</a></li>
+        </ul>
+        <h4 style="margin-top:16px">How it works</h4>
+        <ul>
+          <li>Teacher login → start a session</li>
+          <li>Students join only via the in-class QR code</li>
+          <li>Rotating code + duplicate block stop proxy marking</li>
+        </ul>
+      </div>
+      <div>
+        <h4>Builder &amp; Contact</h4>
+        <ul>
+          <li><b style="color:var(--ink)">Manoj Choudhary</b> — developer</li>
+          <li>GitHub: <a href="https://github.com/manojchoudhary-dev/AttendMark" target="_blank" rel="noopener">manojchoudhary-dev/AttendMark</a></li>
+          <li>Profile: <a href="https://github.com/manojchoudhary-dev" target="_blank" rel="noopener">github.com/manojchoudhary-dev</a></li>
+          <li>Email: <a href="mailto:manojchoudharyy0@gmail.com">manojchoudharyy0@gmail.com</a></li>
+        </ul>
+        <p>Questions, corrections or a data-deletion request — email is the fastest way to reach the builder.</p>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2026 AttendMark • An academic project for FoCP (CSE-1003)</span>
+      <span><a href="#" onclick="openLegal('privacy');return false;">Privacy</a> &nbsp;·&nbsp; <a href="#" onclick="openLegal('terms');return false;">Terms</a> &nbsp;·&nbsp; <a href="mailto:manojchoudharyy0@gmail.com">Contact</a></span>
+    </div>
+  </footer>
+</div>
+
+<!-- PRIVACY POLICY -->
+<div class="legal-overlay hidden" id="legal-privacy" role="dialog" aria-modal="true" aria-labelledby="privacyTitle">
+  <div class="legal-panel">
+    <div class="legal-head"><div><h2 id="privacyTitle">Privacy Policy</h2><p class="sub" style="margin:0">Last updated: 20 November 2026</p></div><button class="legal-close" onclick="closeLegal('privacy')" aria-label="Close">✕</button></div>
+    <p>AttendMark is a classroom attendance system built by Manoj Choudhary as an academic project for FoCP (CSE-1003). This policy explains, in plain language, exactly what data the system stores and who can see it.</p>
+    <h3>What data is collected</h3>
+    <ul>
+      <li><b>Teacher accounts:</b> full name and email address, created through Firebase Authentication. Passwords are handled entirely by Firebase — they are never stored on this page and are not visible to the builder or to any admin.</li>
+      <li><b>Attendance records:</b> when a student marks attendance, the system stores the student's name, scholar number, the session and subject, the time of marking, and how it was marked (QR/code or added manually by the teacher).</li>
+      <li><b>Sessions:</b> subject, section/class, room, session codes, and the teacher's email address used to send the register.</li>
+    </ul>
+    <h3>How the data is used</h3>
+    <p>Data is used only to run attendance: showing the teacher a live register, keeping a history of past sessions, producing the CSV register and the email-ready register, and letting authorised admins oversee the system. Nothing else.</p>
+    <h3>Who can see the data</h3>
+    <ul>
+      <li>A teacher can see their own sessions and their own attendance records.</li>
+      <li>Authorised admin accounts can see all teachers, sessions and attendance records, for oversight and support.</li>
+      <li>Students do not have accounts and cannot browse anyone's data.</li>
+    </ul>
+    <h3>Where it is stored</h3>
+    <p>Data is stored in Google Firebase (Authentication and Cloud Firestore). In <b>Demo Mode</b>, nothing leaves your device — demo data exists only in the open browser tab and is erased when the tab is closed.</p>
+    <h3>What we do not do</h3>
+    <ul>
+      <li>No advertising, no analytics trackers, and no selling or sharing of data with third parties.</li>
+      <li>No data is collected from students beyond the name and scholar number they type into the marking form.</li>
+    </ul>
+    <h3>Your choices</h3>
+    <p>Teachers and students can ask for their records to be corrected or deleted at any time. Send the request to <a href="mailto:manojchoudharyy0@gmail.com">manojchoudharyy0@gmail.com</a> with the email address or scholar number involved, and it will be actioned from the Firebase console.</p>
+    <h3>Contact</h3>
+    <p>Privacy questions: <a href="mailto:manojchoudharyy0@gmail.com">manojchoudharyy0@gmail.com</a> • Source code: <a href="https://github.com/manojchoudhary-dev/AttendMark" target="_blank" rel="noopener">github.com/manojchoudhary-dev/AttendMark</a></p>
+  </div>
+</div>
+
+<!-- TERMS OF USE -->
+<div class="legal-overlay hidden" id="legal-terms" role="dialog" aria-modal="true" aria-labelledby="termsTitle">
+  <div class="legal-panel">
+    <div class="legal-head"><div><h2 id="termsTitle">Terms of Use</h2><p class="sub" style="margin:0">Last updated: 20 November 2026</p></div><button class="legal-close" onclick="closeLegal('terms')" aria-label="Close">✕</button></div>
+    <p>By using AttendMark you agree to these terms. AttendMark is an academic project built for FoCP (CSE-1003) and is provided free of charge, as-is, for classroom attendance.</p>
+    <h3>Accounts</h3>
+    <ul>
+      <li>Teachers are responsible for their own account and password, and for the accuracy of the sessions they create.</li>
+      <li>Admin access is restricted to authorised accounts appointed by the builder. Do not attempt to access the Admin panel or another teacher's data without authorisation.</li>
+    </ul>
+    <h3>Marking attendance</h3>
+    <ul>
+      <li>Students may mark attendance only for themselves, and only while physically present in the classroom during a live session.</li>
+      <li>Marking attendance for another student (proxy marking), sharing the rotating code outside the classroom, or marking from outside the class is prohibited. The rotating code, the one-entry-per-scholar-number rule and the “Already marked” block exist to prevent this, and a teacher may treat a blocked or false entry as absent.</li>
+      <li>If a student has no phone or no connectivity, the teacher may add them manually; the teacher is responsible for the accuracy of manual entries.</li>
+    </ul>
+    <h3>Honest limitations</h3>
+    <p>The rotating code and duplicate checks make proxy marking very difficult, but no attendance system is 100% proxy-proof. AttendMark records should be read alongside the teacher's own judgement. The service may occasionally be unavailable (for example, Firebase or network issues), and attendance taken during an outage should be reconciled by the teacher.</p>
+    <h3>Acceptable use</h3>
+    <ul>
+      <li>Use the system only for genuine classroom attendance.</li>
+      <li>Do not enter false names or scholar numbers, attempt to disrupt sessions, or try to bypass the security checks.</li>
+    </ul>
+    <h3>Changes and availability</h3>
+    <p>As a student project, AttendMark may be updated, paused or discontinued at any time. These terms and the Privacy Policy may be revised; the current version will always be the one shown on this page.</p>
+    <h3>Contact</h3>
+    <p>Questions about these terms: <a href="mailto:manojchoudharyy0@gmail.com">manojchoudharyy0@gmail.com</a> • Builder: Manoj Choudhary, Scholar No. 26U020146 • <a href="https://github.com/manojchoudhary-dev" target="_blank" rel="noopener">github.com/manojchoudhary-dev</a></p>
   </div>
 </div>
 
@@ -499,6 +613,11 @@ function downloadAllCSV(){
   if(demoMode){ var csv='Scholar,Name,Subject,Time\n'+demo.attendance.map(function(a){return [a.scholarNo,a.name,a.subject,a.timeStr].join(',')}).join('\n'); dl(csv,'AttendMark-ALL.csv'); return; }
   db.collection('attendance').get().then(function(s){ var rows=['Scholar,Name,Subject,Time']; s.forEach(function(d){ var a=d.data(); rows.push([a.scholarNo,a.name,a.subject,a.markedAt&&a.markedAt.toDate?a.markedAt.toDate().toLocaleString('en-IN'):''].join(',')); }); dl(rows.join('\n'),'AttendMark-ALL.csv'); });
 }
+// LEGAL PANELS (Privacy / Terms)
+function openLegal(which){ var p=$('legal-'+which); if(p){ p.classList.remove('hidden'); p.scrollTop=0; document.body.style.overflow='hidden'; var c=p.querySelector('.legal-close'); if(c) c.focus(); } }
+function closeLegal(which){ var p=$('legal-'+which); if(p){ p.classList.add('hidden'); document.body.style.overflow=''; } }
+['privacy','terms'].forEach(function(w){ var p=$('legal-'+w); if(p) p.addEventListener('click',function(e){ if(e.target===p) closeLegal(w); }); });
+document.addEventListener('keydown',function(e){ if(e.key==='Escape'){ closeLegal('privacy'); closeLegal('terms'); } });
 showRole('teacher');
 // Students arrive only via the teacher's QR code: ?join=<session code> opens the marking form directly.
 (function(){ try{ var j=new URLSearchParams(location.search).get('join'); if(j){ $('stuSessionCode').value=String(j).replace(/\D/g,'').slice(0,6); showRole('student'); $('view-student').scrollIntoView(); var rc=$('stuRotCode'); if(rc) rc.focus({preventScroll:true}); } }catch(e){} })();
