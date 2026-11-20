@@ -137,6 +137,9 @@ body.student-only #studentInfo{display:none}
 body.student-only #stuSteps{display:none}
 /* Codes arrived inside the QR link — the student never sees or types them. */
 body.hide-codes .codefield{display:none}
+/* Device lock: this device already marked in this session — hide the whole marking
+   form (fields, confirm tick and button) and show only the locked message. */
+body.device-locked #markFormFields,body.device-locked #markBtn{display:none}
 details{margin-top:12px} summary{cursor:pointer;font-weight:700;padding:10px 0;color:var(--accent)}
 @media (prefers-reduced-motion: reduce){
   *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
@@ -175,7 +178,7 @@ details{margin-top:12px} summary{cursor:pointer;font-weight:700;padding:10px 0;c
       <p style="margin:0">Scholar No. <b>26U020146</b><br>FoCP (CSE-1003)</p>
       <div class="chips"><span class="chip">Teacher Panel</span><span class="chip">Student Join — QR Only</span><span class="chip">Admin Panel</span><span class="chip">Firebase Live DB</span></div>
       <div style="margin-top:18px;background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:14px">
-        <b>3 Proxy Locks</b><div style="font-size:13px;margin-top:4px">1) Rotating code every 25 sec &nbsp; 2) One scholar number = one entry &nbsp; 3) A session is active only after the teacher starts it</div>
+        <b>4 Proxy Locks</b><div style="font-size:13px;margin-top:4px">1) Rotating code every 25 sec &nbsp; 2) One scholar number = one entry &nbsp; 3) A session is active only after the teacher starts it &nbsp; 4) One device = one entry per session</div>
       </div>
     </div>
   </section>
@@ -199,6 +202,7 @@ details{margin-top:12px} summary{cursor:pointer;font-weight:700;padding:10px 0;c
     <div class="grid2">
       <div class="card">
         <h2>Mark your attendance</h2><p class="sub" id="stuSub">You reached this form by scanning the QR code your teacher is displaying. Both codes are already filled in from the QR — just enter your name and scholar number. If you opened this page by typing the link instead, type the session code and the current rotating code from the teacher's screen.</p>
+        <div id="markFormFields">
         <div class="steps" id="stuSteps"><div class="step on" id="sstep1">1 • Session Code</div><div class="step" id="sstep2">2 • Your Details</div><div class="step" id="sstep3">3 • Done ✓</div></div>
         <label class="codefield">Session Code (6-digit, from your teacher)</label><input class="codefield" id="stuSessionCode" inputmode="numeric" placeholder="e.g. 482910" maxlength="6">
         <label class="codefield">Rotating Code (auto-filled from the QR — type it only if you opened the link manually)</label><input class="codefield" id="stuRotCode" inputmode="numeric" placeholder="e.g. 7319" maxlength="6">
@@ -206,9 +210,10 @@ details{margin-top:12px} summary{cursor:pointer;font-weight:700;padding:10px 0;c
         <label>Scholar Number</label><input id="stuScholar" placeholder="e.g. 26U020101">
         <label style="display:flex;gap:10px;align-items:flex-start;font-weight:600"><input type="checkbox" id="stuInClass" checked style="width:20px;height:20px;margin-top:2px"> I am in the classroom right now</label>
         <p class="sub" style="margin-top:8px">If this session has the location check on, your location is used only to verify that you are in the classroom.</p>
+        </div>
         <div id="stuMsg"></div>
-        <button class="btn btn-primary btn-block" onclick="markAttendance()" style="margin-top:16px">Mark Me Present ✓</button>
-        <p class="sub" style="margin-top:10px">If you try to mark again, the system will say “Already marked” — that's the proxy lock. One device per scholar works best.</p>
+        <button id="markBtn" class="btn btn-primary btn-block" onclick="markAttendance()" style="margin-top:16px">Mark Me Present ✓</button>
+        <p class="sub" style="margin-top:10px">If you try to mark again, the system will say “Already marked” — that's the proxy lock. And once this device has marked in a session, the form locks on this device for that session — one device, one entry, so a friend cannot be marked from your phone.</p>
       </div>
       <div class="card" id="studentInfo">
         <h3>For Students — understand in 30 seconds</h3>
@@ -365,6 +370,7 @@ details{margin-top:12px} summary{cursor:pointer;font-weight:700;padding:10px 0;c
       <li><b>Teacher accounts:</b> full name and email address, created through Firebase Authentication. Passwords are handled entirely by Firebase — they are never stored on this page and are not visible to the builder or to any admin.</li>
       <li><b>Attendance records:</b> when a student marks attendance, the system stores the student's name, scholar number, the session and subject, the time of marking, and how it was marked (QR/code or added manually by the teacher). If the teacher has enabled the location check for that session, the record also stores the student's location and its distance from the classroom location, used only to verify the student was in the classroom area.</li>
       <li><b>Sessions:</b> subject, section/class, room, session codes, and the teacher's email address used to send the register. When the location check is on, the session also stores the classroom location captured from the teacher's device at the start of the session.</li>
+      <li><b>Device lock flag:</b> after a successful mark, a small flag is stored in the student's own browser (local storage) holding only the scholar number and the time, keyed to that session. It never leaves the device, is not sent to any server, and exists only so the same device cannot mark a second time in the same session.</li>
     </ul>
     <h3>How the data is used</h3>
     <p>Data is used only to run attendance: showing the teacher a live register, keeping a history of past sessions, producing the CSV register and the email-ready register, and letting authorised admins oversee the system. Nothing else.</p>
@@ -550,11 +556,54 @@ function endSession(){
 }
 function alertBox(id,msg){ $(id).innerHTML='<div class="alert err">'+esc(msg)+'</div>'; }
 
+// DEVICE LOCK (Proxy Lock 4): one device = one entry per session.
+// After a mark is SUCCESSFULLY saved from this device, a flag is stored keyed by the
+// session (attendmark_marked_<sessionId> → scholar number + time). Reopening that
+// session's link on this device then shows a locked message instead of the form, and
+// the submit path re-checks the flag (it may have been set in another tab).
+// The flag is set ONLY on a confirmed successful save — never on a failed attempt and
+// never on an "Already marked" response, so a typo can never lock an honest student out.
+// Live mode uses localStorage (so the lock survives reopening the link). Demo Mode uses
+// an in-memory map only, so reloading or closing the demo tab resets the lock and the
+// demo can be run again. Flags older than a day are ignored and removed: session codes
+// are short numbers that can repeat on a later day, and a new session must always be
+// markable from the same device.
+var demoDeviceLock={};
+function deviceLockKey(id){ return 'attendmark_marked_'+id; }
+function deviceLockGet(sessionId, code){
+  try{
+    if(demoMode){ for(var k in demoDeviceLock){ var d=demoDeviceLock[k]; if(k===sessionId || (code && d.code===code)) return d; } return null; }
+    var found=null;
+    for(var i=localStorage.length-1;i>=0;i--){ var key=localStorage.key(i); if(!key || key.indexOf('attendmark_marked_')!==0) continue;
+      var v=null; try{ v=JSON.parse(localStorage.getItem(key)); }catch(e){}
+      if(!v || !v.time || (Date.now()-new Date(v.time).getTime())>24*60*60*1000){ try{ localStorage.removeItem(key); }catch(e){} continue; }
+      if(key===deviceLockKey(sessionId) || (code && v.code===code)) found=v;
+    }
+    return found;
+  }catch(e){ return null; }
+}
+function deviceLockSet(sess, sch){
+  var rec={scholar:sch, code:sess.code||'', time:new Date().toISOString()};
+  if(demoMode){ demoDeviceLock[sess.id]=rec; return; }
+  try{ localStorage.setItem(deviceLockKey(sess.id), JSON.stringify(rec)); }catch(e){}
+}
+function deviceLockedHTML(lock){
+  return '<div class="alert info pop"><b>Attendance already marked from this device.</b><br>This device has already marked attendance for scholar <b>'+esc(lock.scholar||'')+'</b> in this session, so the form is locked — one device can mark only once per session. A friend cannot be marked from this phone; they must use their own device. If something went wrong, ask your teacher — they can still add an entry manually from their panel.</div>';
+}
+function showDeviceLocked(lock){
+  document.body.classList.add('device-locked');
+  $('stuSub').textContent='This device has already been used to mark attendance in this session.';
+  $('stuMsg').innerHTML=deviceLockedHTML(lock);
+  $('sstep1').classList.add('on'); $('sstep2').classList.add('on'); $('sstep3').classList.add('on');
+}
+
 // STUDENT MARK
 function markAttendance(){
   var sc=$('stuSessionCode').value.trim(), rc=$('stuRotCode').value.trim(), name=$('stuName').value.trim(), sch=$('stuScholar').value.trim().toUpperCase();
   if(!sc||!name||!sch){ $('stuMsg').innerHTML='<div class="alert err">Session code, name, and scholar number — all three are required.</div>'; return; }
   if(!$('stuInClass').checked){ $('stuMsg').innerHTML='<div class="alert err">Please confirm you are in the classroom — attendance will not be marked otherwise.</div>'; return; }
+  var earlyLock=deviceLockGet(null, sc);
+  if(earlyLock){ showDeviceLocked(earlyLock); return; }
   $('sstep2').classList.add('on');
   if(demoMode){
     var sess=demo.sessions.find(function(s){return s.code===sc && s.active});
@@ -563,7 +612,7 @@ function markAttendance(){
     if(demo.attendance.some(function(a){return a.sessionId===sess.id && a.scholarNo===sch})){ $('stuMsg').innerHTML='<div class="alert err"><b>Already marked!</b> Attendance for this scholar number is already marked in this session — proxy blocked.</div>'; return; }
     var rec={sessionId:sess.id,sessionCode:sess.code,subject:sess.subject,name:name,scholarNo:sch,via:'QR/Code',timeStr:new Date().toLocaleTimeString('en-IN'),markedAt:new Date(),demo:true};
     if(sess.locationCheck){ rec.distanceM=8+Math.floor(Math.random()*38); rec.stuLat=sess.locLat; rec.stuLng=sess.locLng; } // Demo Mode: simulated distance — real GPS is never requested.
-    demo.attendance.push(rec); $('sstep3').classList.add('on');
+    demo.attendance.push(rec); deviceLockSet(sess, sch); $('sstep3').classList.add('on');
     $('stuMsg').innerHTML='<div class="alert ok pop"><b>✓ Present marked!</b> '+esc(name)+' • '+esc(sch)+' • '+esc(sess.subject)+'</div>';
     $('myToday').innerHTML='<div class="alert ok"><b>'+esc(sess.subject)+'</b> — Present at '+rec.timeStr+'<br>Scholar: '+esc(sch)+'</div>';
     if(activeSession && activeSession.id===sess.id) renderReg(demo.attendance.filter(function(a){return a.sessionId===sess.id}));
@@ -574,13 +623,15 @@ function markAttendance(){
     if(snap.empty){ $('stuMsg').innerHTML='<div class="alert err">No active session found. Please check the code with your teacher again.</div>'; return; }
     var doc=snap.docs[0], sess=doc.data(); sess.id=doc.id;
     if(rc && rc!==sess.rotatingCode){ $('stuMsg').innerHTML='<div class="alert err">Rotating code is expired / wrong — check the current code on the teacher\'s screen (it changes every 25 seconds).</div>'; return; }
+    var devLock=deviceLockGet(sess.id, sc);
+    if(devLock){ showDeviceLocked(devLock); return; }
     db.collection('attendance').where('sessionId','==',sess.id).where('scholarNo','==',sch).limit(1).get().then(function(dup){
       if(!dup.empty){ $('stuMsg').innerHTML='<div class="alert err"><b>Already marked!</b> This scholar number is already marked present in this session.</div>'; return; }
       function saveAtt(extra){
         var payload={sessionId:sess.id,sessionCode:sc,subject:sess.subject,teacherId:sess.teacherId,name:name,scholarNo:sch,via:'QR/Code',markedAt:firebase.firestore.FieldValue.serverTimestamp()};
         if(extra){ payload.distanceM=extra.distanceM; payload.stuLat=extra.lat; payload.stuLng=extra.lng; }
         db.collection('attendance').add(payload).then(function(){
-          $('sstep3').classList.add('on'); $('stuMsg').innerHTML='<div class="alert ok pop"><b>✓ Present marked!</b> '+esc(name)+' • '+esc(sess.subject)+(extra?' • '+extra.distanceM+' m from the classroom':'')+'</div>';
+          deviceLockSet(sess, sch); $('sstep3').classList.add('on'); $('stuMsg').innerHTML='<div class="alert ok pop"><b>✓ Present marked!</b> '+esc(name)+' • '+esc(sess.subject)+(extra?' • '+extra.distanceM+' m from the classroom':'')+'</div>';
           $('myToday').innerHTML='<div class="alert ok"><b>'+esc(sess.subject)+'</b> — Present ✓<br>Scholar: '+esc(sch)+' • '+new Date().toLocaleTimeString('en-IN')+'</div>';
         }).catch(function(e){ $('stuMsg').innerHTML='<div class="alert err"><b>Could not save your attendance:</b> '+esc(e.message)+' — please tell your teacher.</div>'; });
       }
@@ -666,7 +717,7 @@ showRole('teacher');
 // A scanned link opens STUDENT-ONLY mode: the whole website (hero, stats, teacher/admin panels,
 // footer) is hidden and only the attendance form is shown. When the rotating code came inside
 // the link, the code fields are hidden too — the student sees and types only name + scholar number.
-(function(){ try{ var q=new URLSearchParams(location.search); var j=q.get('join'); if(j){ document.body.classList.add('student-only'); $('stuSessionCode').value=String(j).replace(/\D/g,'').slice(0,6); var rot=q.get('rot'); if(rot){ $('stuRotCode').value=String(rot).replace(/\D/g,'').slice(0,6); document.body.classList.add('hide-codes'); $('stuSub').textContent='You scanned the QR code in class. Just enter your name and scholar number below, then tap “Mark Me Present”.'; $('stuMsg').innerHTML='<div class="alert ok pop"><b>Class session joined ✓</b> Fill in your details below to mark yourself present.</div>'; } showRole('student'); $('view-student').scrollIntoView(); var nm=$('stuName'); if(nm) nm.focus({preventScroll:true}); } }catch(e){} })();
+(function(){ try{ var q=new URLSearchParams(location.search); var j=q.get('join'); if(j){ document.body.classList.add('student-only'); $('stuSessionCode').value=String(j).replace(/\D/g,'').slice(0,6); var rot=q.get('rot'); if(rot){ $('stuRotCode').value=String(rot).replace(/\D/g,'').slice(0,6); document.body.classList.add('hide-codes'); $('stuSub').textContent='You scanned the QR code in class. Just enter your name and scholar number below, then tap “Mark Me Present”.'; $('stuMsg').innerHTML='<div class="alert ok pop"><b>Class session joined ✓</b> Fill in your details below to mark yourself present.</div>'; } var lk=deviceLockGet(null, $('stuSessionCode').value); if(lk){ showDeviceLocked(lk); } showRole('student'); $('view-student').scrollIntoView(); var nm=$('stuName'); if(nm && !lk) nm.focus({preventScroll:true}); } }catch(e){} })();
 </script>
 </body>
 </html>
