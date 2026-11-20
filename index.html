@@ -128,6 +128,15 @@ th{font-size:11.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--mu
 .legal-close{flex:none;width:42px;height:42px;min-height:42px;border-radius:8px;border:1px solid var(--line2);background:#fff;font-size:18px;cursor:pointer;color:var(--ink)}
 code{background:var(--panel2);color:var(--ink);padding:2px 6px;border-radius:6px;font-size:.92em}
 .kbd{font-size:12px}
+/* Student-only mode: the page was opened by scanning the teacher's QR code.
+   Show ONLY the attendance form — no hero, stats, role cards, other panels or footer. */
+body.student-only .topbar,body.student-only .hero,body.student-only .stats,body.student-only .role-grid,body.student-only .footer{display:none}
+body.student-only .wrap{max-width:560px;padding-top:26px}
+body.student-only #view-student .grid2{grid-template-columns:1fr}
+body.student-only #studentInfo{display:none}
+body.student-only #stuSteps{display:none}
+/* Codes arrived inside the QR link — the student never sees or types them. */
+body.hide-codes .codefield{display:none}
 details{margin-top:12px} summary{cursor:pointer;font-weight:700;padding:10px 0;color:var(--accent)}
 @media (prefers-reduced-motion: reduce){
   *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
@@ -189,18 +198,19 @@ details{margin-top:12px} summary{cursor:pointer;font-weight:700;padding:10px 0;c
   <section id="view-student" class="hidden">
     <div class="grid2">
       <div class="card">
-        <h2>Mark your attendance</h2><p class="sub">You reached this form by scanning the QR code your teacher is displaying. Both codes are already filled in from the QR — just enter your name and scholar number. If you opened this page by typing the link instead, type the session code and the current rotating code from the teacher's screen.</p>
-        <div class="steps"><div class="step on" id="sstep1">1 • Session Code</div><div class="step" id="sstep2">2 • Your Details</div><div class="step" id="sstep3">3 • Done ✓</div></div>
-        <label>Session Code (6-digit, from your teacher)</label><input id="stuSessionCode" inputmode="numeric" placeholder="e.g. 482910" maxlength="6">
-        <label>Rotating Code (auto-filled from the QR — type it only if you opened the link manually)</label><input id="stuRotCode" inputmode="numeric" placeholder="e.g. 7319" maxlength="6">
+        <h2>Mark your attendance</h2><p class="sub" id="stuSub">You reached this form by scanning the QR code your teacher is displaying. Both codes are already filled in from the QR — just enter your name and scholar number. If you opened this page by typing the link instead, type the session code and the current rotating code from the teacher's screen.</p>
+        <div class="steps" id="stuSteps"><div class="step on" id="sstep1">1 • Session Code</div><div class="step" id="sstep2">2 • Your Details</div><div class="step" id="sstep3">3 • Done ✓</div></div>
+        <label class="codefield">Session Code (6-digit, from your teacher)</label><input class="codefield" id="stuSessionCode" inputmode="numeric" placeholder="e.g. 482910" maxlength="6">
+        <label class="codefield">Rotating Code (auto-filled from the QR — type it only if you opened the link manually)</label><input class="codefield" id="stuRotCode" inputmode="numeric" placeholder="e.g. 7319" maxlength="6">
         <label>Your Name</label><input id="stuName" placeholder="e.g. Aarav Sharma">
         <label>Scholar Number</label><input id="stuScholar" placeholder="e.g. 26U020101">
         <label style="display:flex;gap:10px;align-items:flex-start;font-weight:600"><input type="checkbox" id="stuInClass" checked style="width:20px;height:20px;margin-top:2px"> I am in the classroom right now</label>
+        <p class="sub" style="margin-top:8px">If this session has the location check on, your location is used only to verify that you are in the classroom.</p>
         <div id="stuMsg"></div>
         <button class="btn btn-primary btn-block" onclick="markAttendance()" style="margin-top:16px">Mark Me Present ✓</button>
         <p class="sub" style="margin-top:10px">If you try to mark again, the system will say “Already marked” — that's the proxy lock. One device per scholar works best.</p>
       </div>
-      <div class="card">
+      <div class="card" id="studentInfo">
         <h3>For Students — understand in 30 seconds</h3>
         <ul class="list">
           <li><span><b>1. Scan the QR code</b><br><span class="sub">The teacher displays a QR code on the screen / projector — scanning it opens this form with the session code filled in</span></span><span class="badge">15 sec</span></li>
@@ -252,6 +262,8 @@ details{margin-top:12px} summary{cursor:pointer;font-weight:700;padding:10px 0;c
             <div><label>Room</label><input id="sessRoom" placeholder="e.g. Room number"></div>
           </div>
           <label>Teacher's Email (to send the register to)</label><input id="sessEmail" type="email" placeholder="teacher@college.edu">
+          <label style="display:flex;gap:10px;align-items:flex-start;font-weight:600"><input type="checkbox" id="sessLocCheck" checked style="width:20px;height:20px;flex:none;margin-top:2px"> Location check — students must be within 150 m of the classroom to mark present</label>
+          <p class="sub" style="margin:4px 0 0">Starting the session saves this device's current location as the classroom location. If you deny location permission, the session simply starts with the check off — you will be told on screen, never silently.</p>
           <button class="btn btn-primary btn-block" onclick="createSession()" style="margin-top:16px">▶ Start New Session</button>
           <div id="sessMsg"></div>
           <details><summary>Add a student manually (no phone case)</summary>
@@ -351,8 +363,8 @@ details{margin-top:12px} summary{cursor:pointer;font-weight:700;padding:10px 0;c
     <h3>What data is collected</h3>
     <ul>
       <li><b>Teacher accounts:</b> full name and email address, created through Firebase Authentication. Passwords are handled entirely by Firebase — they are never stored on this page and are not visible to the builder or to any admin.</li>
-      <li><b>Attendance records:</b> when a student marks attendance, the system stores the student's name, scholar number, the session and subject, the time of marking, and how it was marked (QR/code or added manually by the teacher).</li>
-      <li><b>Sessions:</b> subject, section/class, room, session codes, and the teacher's email address used to send the register.</li>
+      <li><b>Attendance records:</b> when a student marks attendance, the system stores the student's name, scholar number, the session and subject, the time of marking, and how it was marked (QR/code or added manually by the teacher). If the teacher has enabled the location check for that session, the record also stores the student's location and its distance from the classroom location, used only to verify the student was in the classroom area.</li>
+      <li><b>Sessions:</b> subject, section/class, room, session codes, and the teacher's email address used to send the register. When the location check is on, the session also stores the classroom location captured from the teacher's device at the start of the session.</li>
     </ul>
     <h3>How the data is used</h3>
     <p>Data is used only to run attendance: showing the teacher a live register, keeping a history of past sessions, producing the CSV register and the email-ready register, and letting authorised admins oversee the system. Nothing else.</p>
@@ -367,7 +379,7 @@ details{margin-top:12px} summary{cursor:pointer;font-weight:700;padding:10px 0;c
     <h3>What we do not do</h3>
     <ul>
       <li>No advertising, no analytics trackers, and no selling or sharing of data with third parties.</li>
-      <li>No data is collected from students beyond the name and scholar number they type into the marking form.</li>
+      <li>No data is collected from students beyond the name and scholar number they type into the marking form — plus, only when a session's location check is on, the location check described above. Location is never tracked in the background or outside the moment of marking.</li>
     </ul>
     <h3>Your choices</h3>
     <p>Teachers and students can ask for their records to be corrected or deleted at any time. Send the request to <a href="mailto:hello@manojchoudhary.me">hello@manojchoudhary.me</a> with the email address or scholar number involved, and it will be actioned from the Firebase console.</p>
@@ -391,6 +403,7 @@ details{margin-top:12px} summary{cursor:pointer;font-weight:700;padding:10px 0;c
       <li>Students may mark attendance only for themselves, and only while physically present in the classroom during a live session.</li>
       <li>Marking attendance for another student (proxy marking), sharing the rotating code outside the classroom, or marking from outside the class is prohibited. The rotating code, the one-entry-per-scholar-number rule and the “Already marked” block exist to prevent this, and a teacher may treat a blocked or false entry as absent.</li>
       <li>If a student has no phone or no connectivity, the teacher may add them manually; the teacher is responsible for the accuracy of manual entries.</li>
+      <li>If a session has the location check on, a student must allow location access and be within 150 metres of the classroom location to mark present; a mark attempted from outside that area is rejected.</li>
     </ul>
     <h3>Honest limitations</h3>
     <p>The rotating code and duplicate checks make proxy marking very difficult, but no attendance system is 100% proxy-proof. AttendMark records should be read alongside the teacher's own judgement. The service may occasionally be unavailable (for example, Firebase or network issues), and attendance taken during an outage should be reconciled by the teacher.</p>
@@ -476,19 +489,31 @@ $('logoutBtn').addEventListener('click',function(){ if(demoMode){location.reload
 
 // SESSIONS
 function rand(n){ var s=''; for(var i=0;i<n;i++) s+=Math.floor(Math.random()*10); return s; }
+var LOC_RADIUS_M=150; // Deliberately generous: indoor GPS drift is large, so the check is never tighter than this.
+function getGeo(){ return new Promise(function(resolve,reject){ if(!navigator.geolocation){ reject(new Error('Geolocation is not supported on this device.')); return; } navigator.geolocation.getCurrentPosition(resolve,reject,{enableHighAccuracy:true,timeout:12000,maximumAge:0}); }); }
+function haversineM(lat1,lon1,lat2,lon2){ var R=6371000, rad=Math.PI/180; var dLat=(lat2-lat1)*rad, dLon=(lon2-lon1)*rad; var a=Math.sin(dLat/2)*Math.sin(dLat/2)+Math.cos(lat1*rad)*Math.cos(lat2*rad)*Math.sin(dLon/2)*Math.sin(dLon/2); return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a)); }
 function createSession(){
   var subj=$('sessSubject').value.trim()||'Class', sec=$('sessSection').value.trim(), room=$('sessRoom').value.trim(), temail=$('sessEmail').value.trim();
   if(!currentUser){ $('sessMsg').innerHTML='<div class="alert err">Please log in first.</div>'; return; }
-  var sess={teacherId:currentUser.uid,teacherName:currentUser.displayName||currentUser.email,teacherEmail:temail||currentUser.email,subject:subj,section:sec,room:room,code:rand(6),rotatingCode:rand(4),active:true,createdAt:new Date(),dateStr:new Date().toLocaleDateString('en-IN')};
-  if(demoMode){ sess.id='demo-'+(demo.seq++); demo.sessions.unshift(sess); startLive(sess); updateStatsDemo(); return; }
-  db.collection('sessions').add({teacherId:sess.teacherId,teacherName:sess.teacherName,teacherEmail:sess.teacherEmail,subject:subj,section:sec,room:room,code:sess.code,rotatingCode:sess.rotatingCode,active:true,createdAt:firebase.firestore.FieldValue.serverTimestamp(),dateStr:sess.dateStr}).then(function(ref){ sess.id=ref.id; startLive(sess); loadGlobalStats(); loadPastSessions(); }).catch(function(e){ $('sessMsg').innerHTML='<div class="alert err">'+esc(e.message)+' — Is Firestore test mode on? Please check in the Console.</div>'; });
+  var wantLoc=$('sessLocCheck') ? $('sessLocCheck').checked : true;
+  function proceed(loc,locDenied){
+    var sess={teacherId:currentUser.uid,teacherName:currentUser.displayName||currentUser.email,teacherEmail:temail||currentUser.email,subject:subj,section:sec,room:room,code:rand(6),rotatingCode:rand(4),active:true,createdAt:new Date(),dateStr:new Date().toLocaleDateString('en-IN'),locationCheck:!!(wantLoc&&loc),locLat:loc?loc.lat:null,locLng:loc?loc.lng:null,locDemo:!!(demoMode&&loc),_locDenied:!!locDenied};
+    if(demoMode){ sess.id='demo-'+(demo.seq++); demo.sessions.unshift(sess); startLive(sess); updateStatsDemo(); return; }
+    db.collection('sessions').add({teacherId:sess.teacherId,teacherName:sess.teacherName,teacherEmail:sess.teacherEmail,subject:subj,section:sec,room:room,code:sess.code,rotatingCode:sess.rotatingCode,active:true,createdAt:firebase.firestore.FieldValue.serverTimestamp(),dateStr:sess.dateStr,locationCheck:sess.locationCheck,locLat:sess.locLat,locLng:sess.locLng}).then(function(ref){ sess.id=ref.id; startLive(sess); loadGlobalStats(); loadPastSessions(); }).catch(function(e){ $('sessMsg').innerHTML='<div class="alert err">'+esc(e.message)+' — Is Firestore test mode on? Please check in the Console.</div>'; });
+  }
+  if(!wantLoc){ proceed(null,false); return; }
+  if(demoMode){ proceed({lat:23.2599,lng:77.4126},false); return; } // Demo Mode: simulated classroom location — real GPS is never requested.
+  $('sessMsg').innerHTML='<div class="alert info">Getting your classroom location… if your browser asks, please allow location access. This spot becomes the centre of the '+LOC_RADIUS_M+' m check.</div>';
+  getGeo().then(function(p){ proceed({lat:p.coords.latitude,lng:p.coords.longitude},false); }).catch(function(){ proceed(null,true); });
 }
 function startLive(sess){
   activeSession=sess; $('liveStatus').textContent='LIVE'; $('liveStatus').className='badge';
   $('liveMeta').textContent=sess.subject+' • '+sess.section+' • '+sess.room+' • '+sess.dateStr;
   $('bigCode').textContent=sess.code; $('rotCode').textContent=sess.rotatingCode; $('qrWrap').classList.remove('hidden');
   renderQR(); startRotation(); listenAttendance(); $('liveCount').textContent='0';
-  $('sessMsg').innerHTML='<div class="alert ok pop"><b>Session LIVE!</b> Show this screen on the projector. The QR code refreshes every 15 seconds with the new rotating code inside it — students scan it and both codes arrive pre-filled; they only type their name and scholar number.</div>';
+  var locNote=sess.locationCheck? ' <b>Location check ON:</b> a student can mark present only within '+LOC_RADIUS_M+' m of '+(sess.locDemo?'the simulated classroom location (Demo Mode).':'the classroom location saved from this device.') : ' Location check is OFF for this session.';
+  var deniedNote=sess._locDenied? '<div class="alert err" style="margin-top:10px"><b>Location permission was denied</b> (or location was unavailable), so this session started with the location check OFF — students will not be location-checked. To use the check, allow location access in your browser and start a new session.</div>' : '';
+  $('sessMsg').innerHTML='<div class="alert ok pop"><b>Session LIVE!</b> Show this screen on the projector. The QR code refreshes every 15 seconds with the new rotating code inside it — students scan it and both codes arrive pre-filled; they only type their name and scholar number.'+locNote+'</div>'+deniedNote;
 }
 function joinURL(){ return location.origin+location.pathname+'?join='+(activeSession?activeSession.code:'')+'&rot='+(activeSession?activeSession.rotatingCode:''); }
 function renderQR(){ var el=$('qrcode'); el.innerHTML=''; if(window.QRCode){ new QRCode(el,{text:joinURL(),width:160,height:160}); } }
@@ -510,7 +535,7 @@ function listenAttendance(){
 function renderReg(arr){
   $('liveCount').textContent=arr.length; $('liveCount').classList.remove('pop'); void $('liveCount').offsetWidth; $('liveCount').classList.add('pop');
   if(!arr.length){ $('regBody').innerHTML='<tr><td colspan="5" class="sub">No entries yet.</td></tr>'; return; }
-  $('regBody').innerHTML=arr.map(function(a,i){ var t=a.markedAt&&a.markedAt.toDate?a.markedAt.toDate().toLocaleTimeString('en-IN'): (a.timeStr||''); return '<tr class="pop"><td>'+(i+1)+'</td><td><b>'+esc(a.name)+'</b></td><td>'+esc(a.scholarNo)+'</td><td>'+esc(t)+'</td><td><span class="badge">'+esc(a.via||'Code')+'</span></td></tr>'; }).join('');
+  $('regBody').innerHTML=arr.map(function(a,i){ var t=a.markedAt&&a.markedAt.toDate?a.markedAt.toDate().toLocaleTimeString('en-IN'): (a.timeStr||''); var dist=(a.distanceM!=null&&a.distanceM!=='')?'<div class="sub" style="margin-top:4px">'+Math.round(a.distanceM)+' m from class'+(a.demo?' (demo)':'')+'</div>':''; return '<tr class="pop"><td>'+(i+1)+'</td><td><b>'+esc(a.name)+'</b></td><td>'+esc(a.scholarNo)+'</td><td>'+esc(t)+'</td><td><span class="badge">'+esc(a.via||'Code')+'</span>'+dist+'</td></tr>'; }).join('');
   activeSession._att=arr;
 }
 function endSession(){
@@ -535,7 +560,8 @@ function markAttendance(){
     if(!sess){ $('stuMsg').innerHTML='<div class="alert err">Session not found or it has ended. In Demo mode, start a session from the Teacher panel first.</div>'; return; }
     if(rc && rc!==sess.rotatingCode){ $('stuMsg').innerHTML='<div class="alert err">Rotating code is wrong / expired. Check the current code on the teacher\'s screen.</div>'; return; }
     if(demo.attendance.some(function(a){return a.sessionId===sess.id && a.scholarNo===sch})){ $('stuMsg').innerHTML='<div class="alert err"><b>Already marked!</b> Attendance for this scholar number is already marked in this session — proxy blocked.</div>'; return; }
-    var rec={sessionId:sess.id,sessionCode:sess.code,subject:sess.subject,name:name,scholarNo:sch,via:'QR/Code',timeStr:new Date().toLocaleTimeString('en-IN'),markedAt:new Date()};
+    var rec={sessionId:sess.id,sessionCode:sess.code,subject:sess.subject,name:name,scholarNo:sch,via:'QR/Code',timeStr:new Date().toLocaleTimeString('en-IN'),markedAt:new Date(),demo:true};
+    if(sess.locationCheck){ rec.distanceM=8+Math.floor(Math.random()*38); rec.stuLat=sess.locLat; rec.stuLng=sess.locLng; } // Demo Mode: simulated distance — real GPS is never requested.
     demo.attendance.push(rec); $('sstep3').classList.add('on');
     $('stuMsg').innerHTML='<div class="alert ok pop"><b>✓ Present marked!</b> '+esc(name)+' • '+esc(sch)+' • '+esc(sess.subject)+'</div>';
     $('myToday').innerHTML='<div class="alert ok"><b>'+esc(sess.subject)+'</b> — Present at '+rec.timeStr+'<br>Scholar: '+esc(sch)+'</div>';
@@ -549,10 +575,22 @@ function markAttendance(){
     if(rc && rc!==sess.rotatingCode){ $('stuMsg').innerHTML='<div class="alert err">Rotating code is expired / wrong — check the current code on the teacher\'s screen (it changes every 15 seconds).</div>'; return; }
     db.collection('attendance').where('sessionId','==',sess.id).where('scholarNo','==',sch).limit(1).get().then(function(dup){
       if(!dup.empty){ $('stuMsg').innerHTML='<div class="alert err"><b>Already marked!</b> This scholar number is already marked present in this session.</div>'; return; }
-      db.collection('attendance').add({sessionId:sess.id,sessionCode:sc,subject:sess.subject,teacherId:sess.teacherId,name:name,scholarNo:sch,via:'QR/Code',markedAt:firebase.firestore.FieldValue.serverTimestamp()}).then(function(){
-        $('sstep3').classList.add('on'); $('stuMsg').innerHTML='<div class="alert ok pop"><b>✓ Present marked!</b> '+esc(name)+' • '+esc(sess.subject)+'</div>';
-        $('myToday').innerHTML='<div class="alert ok"><b>'+esc(sess.subject)+'</b> — Present ✓<br>Scholar: '+esc(sch)+' • '+new Date().toLocaleTimeString('en-IN')+'</div>';
-      }).catch(function(e){ $('stuMsg').innerHTML='<div class="alert err"><b>Could not save your attendance:</b> '+esc(e.message)+' — please tell your teacher.</div>'; });
+      function saveAtt(extra){
+        var payload={sessionId:sess.id,sessionCode:sc,subject:sess.subject,teacherId:sess.teacherId,name:name,scholarNo:sch,via:'QR/Code',markedAt:firebase.firestore.FieldValue.serverTimestamp()};
+        if(extra){ payload.distanceM=extra.distanceM; payload.stuLat=extra.lat; payload.stuLng=extra.lng; }
+        db.collection('attendance').add(payload).then(function(){
+          $('sstep3').classList.add('on'); $('stuMsg').innerHTML='<div class="alert ok pop"><b>✓ Present marked!</b> '+esc(name)+' • '+esc(sess.subject)+(extra?' • '+extra.distanceM+' m from the classroom':'')+'</div>';
+          $('myToday').innerHTML='<div class="alert ok"><b>'+esc(sess.subject)+'</b> — Present ✓<br>Scholar: '+esc(sch)+' • '+new Date().toLocaleTimeString('en-IN')+'</div>';
+        }).catch(function(e){ $('stuMsg').innerHTML='<div class="alert err"><b>Could not save your attendance:</b> '+esc(e.message)+' — please tell your teacher.</div>'; });
+      }
+      if(sess.locationCheck && typeof sess.locLat==='number' && typeof sess.locLng==='number'){
+        $('stuMsg').innerHTML='<div class="alert info">This session has a location check. Checking your location… please allow location access when your browser asks.</div>';
+        getGeo().then(function(p){
+          var dist=haversineM(sess.locLat,sess.locLng,p.coords.latitude,p.coords.longitude);
+          if(dist>LOC_RADIUS_M){ $('stuMsg').innerHTML='<div class="alert err"><b>You appear to be outside the classroom area.</b> You are about '+Math.round(dist)+' m from the classroom, and attendance can only be marked within '+LOC_RADIUS_M+' m of it. Please come to the classroom and try again.</div>'; return; }
+          saveAtt({distanceM:Math.round(dist),lat:p.coords.latitude,lng:p.coords.longitude});
+        }).catch(function(){ $('stuMsg').innerHTML='<div class="alert err"><b>Location is required for this session.</b> Your teacher has turned on the location check, so attendance cannot be marked without it. Please allow location access in your browser and tap “Mark Me Present” again.</div>'; });
+      } else saveAtt(null);
     }).catch(function(e){ $('stuMsg').innerHTML='<div class="alert err">'+esc(e.message)+'</div>'; });
   }).catch(function(e){ $('stuMsg').innerHTML='<div class="alert err">'+esc(e.message)+'</div>'; });
 }
@@ -567,7 +605,7 @@ function manualAdd(){
 function currentAtt(){ return (activeSession && activeSession._att) ? activeSession._att : (demoMode? demo.attendance.filter(function(a){return activeSession&&a.sessionId===activeSession.id}) : []); }
 function downloadCSV(){
   var arr=currentAtt(); if(!activeSession||!arr.length){ alertBox('sessMsg','The register is empty — let some students mark attendance first.'); return; }
-  var csv='Scholar Number,Name,Time,Subject,Section,Date\n'+arr.map(function(a){ var t=a.markedAt&&a.markedAt.toDate?a.markedAt.toDate().toLocaleString('en-IN'):(a.timeStr||''); return [a.scholarNo,a.name,t,activeSession.subject,activeSession.section,activeSession.dateStr].map(function(x){return '"'+String(x||'').replace(/"/g,'""')+'"'}).join(','); }).join('\n');
+  var csv='Scholar Number,Name,Time,Subject,Section,Date,Distance (m)\n'+arr.map(function(a){ var t=a.markedAt&&a.markedAt.toDate?a.markedAt.toDate().toLocaleString('en-IN'):(a.timeStr||''); return [a.scholarNo,a.name,t,activeSession.subject,activeSession.section,activeSession.dateStr,(a.distanceM!=null?Math.round(a.distanceM):'')].map(function(x){return '"'+String(x||'').replace(/"/g,'""')+'"'}).join(','); }).join('\n');
   dl(csv,'AttendMark-'+activeSession.code+'.csv');
 }
 function dl(text,filename){ var b=new Blob([text],{type:'text/csv'}); var a=document.createElement('a'); a.href=URL.createObjectURL(b); a.download=filename; a.click(); }
@@ -623,9 +661,11 @@ function closeLegal(which){ var p=$('legal-'+which); if(p){ p.classList.add('hid
 document.addEventListener('keydown',function(e){ if(e.key==='Escape'){ closeLegal('privacy'); closeLegal('terms'); } });
 showRole('teacher');
 // Students arrive only via the teacher's QR code: ?join=<session code>&rot=<rotating code>.
-// The QR itself rotates every 15 seconds and carries the current rotating code inside the link,
-// so both codes arrive pre-filled — the student only types name + scholar number.
-(function(){ try{ var q=new URLSearchParams(location.search); var j=q.get('join'); if(j){ $('stuSessionCode').value=String(j).replace(/\D/g,'').slice(0,6); var rot=q.get('rot'); if(rot){ $('stuRotCode').value=String(rot).replace(/\D/g,'').slice(0,6); $('stuMsg').innerHTML='<div class="alert ok pop"><b>Codes auto-filled from the QR code ✓</b> Just enter your name and scholar number below, then tap “Mark Me Present”.</div>'; } showRole('student'); $('view-student').scrollIntoView(); var nm=$('stuName'); if(nm) nm.focus({preventScroll:true}); } }catch(e){} })();
+// The QR itself rotates every 15 seconds and carries the current rotating code inside the link.
+// A scanned link opens STUDENT-ONLY mode: the whole website (hero, stats, teacher/admin panels,
+// footer) is hidden and only the attendance form is shown. When the rotating code came inside
+// the link, the code fields are hidden too — the student sees and types only name + scholar number.
+(function(){ try{ var q=new URLSearchParams(location.search); var j=q.get('join'); if(j){ document.body.classList.add('student-only'); $('stuSessionCode').value=String(j).replace(/\D/g,'').slice(0,6); var rot=q.get('rot'); if(rot){ $('stuRotCode').value=String(rot).replace(/\D/g,'').slice(0,6); document.body.classList.add('hide-codes'); $('stuSub').textContent='You scanned the QR code in class. Just enter your name and scholar number below, then tap “Mark Me Present”.'; $('stuMsg').innerHTML='<div class="alert ok pop"><b>Class session joined ✓</b> Fill in your details below to mark yourself present.</div>'; } showRole('student'); $('view-student').scrollIntoView(); var nm=$('stuName'); if(nm) nm.focus({preventScroll:true}); } }catch(e){} })();
 </script>
 </body>
 </html>
