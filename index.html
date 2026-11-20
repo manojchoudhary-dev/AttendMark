@@ -175,7 +175,7 @@ details{margin-top:12px} summary{cursor:pointer;font-weight:700;padding:10px 0;c
       <p style="margin:0">Scholar No. <b>26U020146</b><br>FoCP (CSE-1003)</p>
       <div class="chips"><span class="chip">Teacher Panel</span><span class="chip">Student Join — QR Only</span><span class="chip">Admin Panel</span><span class="chip">Firebase Live DB</span></div>
       <div style="margin-top:18px;background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:14px">
-        <b>3 Proxy Locks</b><div style="font-size:13px;margin-top:4px">1) Rotating code every 15 sec &nbsp; 2) One scholar number = one entry &nbsp; 3) A session is active only after the teacher starts it</div>
+        <b>3 Proxy Locks</b><div style="font-size:13px;margin-top:4px">1) Rotating code every 25 sec &nbsp; 2) One scholar number = one entry &nbsp; 3) A session is active only after the teacher starts it</div>
       </div>
     </div>
   </section>
@@ -213,7 +213,7 @@ details{margin-top:12px} summary{cursor:pointer;font-weight:700;padding:10px 0;c
       <div class="card" id="studentInfo">
         <h3>For Students — understand in 30 seconds</h3>
         <ul class="list">
-          <li><span><b>1. Scan the QR code</b><br><span class="sub">The teacher displays a QR code on the screen / projector — scanning it opens this form with the session code filled in</span></span><span class="badge">15 sec</span></li>
+          <li><span><b>1. Scan the QR code</b><br><span class="sub">The teacher displays a QR code on the screen / projector — scanning it opens this form with the session code filled in</span></span><span class="badge">25 sec</span></li>
           <li><span><b>2. Fill the form</b><br><span class="sub">Both codes come pre-filled from the QR — you only type your name and scholar number</span></span><span class="badge">20 sec</span></li>
           <li><span><b>3. Done</b><br><span class="sub">Your name will appear in the teacher's live register</span></span><span class="badge">Instant</span></li>
         </ul>
@@ -243,7 +243,7 @@ details{margin-top:12px} summary{cursor:pointer;font-weight:700;padding:10px 0;c
         <ul class="list">
           <li><span>Create sessions for your classes</span><span class="badge">Unlimited</span></li>
           <li><span>Live register — who arrived, and when</span><span class="badge">Real-time</span></li>
-          <li><span>Rotating QR + code projector view</span><span class="badge">15 sec</span></li>
+          <li><span>Rotating QR + code projector view</span><span class="badge">25 sec</span></li>
           <li><span>CSV download + email-ready register</span><span class="badge">1 click</span></li>
           <li><span>Full history of past sessions</span><span class="badge">Saved</span></li>
         </ul>
@@ -276,7 +276,7 @@ details{margin-top:12px} summary{cursor:pointer;font-weight:700;padding:10px 0;c
           <p style="opacity:.85;font-size:14px" id="liveMeta">As soon as you start a session, a large code will appear here — show this on the projector.</p>
           <div class="qrwrap hidden" id="qrWrap"><div id="qrcode"></div></div>
           <div style="font-size:12px;letter-spacing:.14em;opacity:.8">SESSION CODE</div><div class="bigcode" id="bigCode">------</div>
-          <div style="font-size:12px;letter-spacing:.14em;opacity:.8;margin-top:8px">ROTATING CODE • <span id="countdown">15</span>s</div><div class="rotcode" id="rotCode">----</div>
+          <div style="font-size:12px;letter-spacing:.14em;opacity:.8;margin-top:8px">ROTATING CODE • <span id="countdown">25</span>s</div><div class="rotcode" id="rotCode">----</div>
           <div class="progress"><i id="progBar" style="width:100%"></i></div>
           <div style="font-size:28px;font-weight:700"><span id="liveCount">0</span> present</div>
           <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:12px">
@@ -423,7 +423,8 @@ details{margin-top:12px} summary{cursor:pointer;font-weight:700;padding:10px 0;c
 var firebaseConfig={apiKey:"AIzaSyAz4g_owtqnTTyPRaM3zNyI3G94JNCfGZE",authDomain:"attendmark-22ed8.firebaseapp.com",projectId:"attendmark-22ed8",storageBucket:"attendmark-22ed8.firebasestorage.app",messagingSenderId:"577111912387",appId:"1:577111912387:web:fe9a8c229ff2a8177cd776"};
 var ADMIN_EMAILS=["founder@slopemaps.in","hello@slopemaps.in","admin@attendmark.in","manojchoudharyy0@gmail.com"];
 var auth=null,db=null,fbOk=false,demoMode=false;
-var currentUser=null,userRole='teacher',activeSession=null,rotTimer=null,countTimer=null,secondsLeft=15;
+var ROTATE_SECONDS=25;
+var currentUser=null,userRole='teacher',activeSession=null,rotTimer=null,countTimer=null,secondsLeft=ROTATE_SECONDS;
 var demo={sessions:[],attendance:[],users:[],seq:1};
 try{ firebase.initializeApp(firebaseConfig); auth=firebase.auth(); db=firebase.firestore(); fbOk=true; }catch(e){ setConn(false,'Firebase init failed'); }
 
@@ -513,17 +514,17 @@ function startLive(sess){
   renderQR(); startRotation(); listenAttendance(); $('liveCount').textContent='0';
   var locNote=sess.locationCheck? ' <b>Location check ON:</b> a student can mark present only within '+LOC_RADIUS_M+' m of '+(sess.locDemo?'the simulated classroom location (Demo Mode).':'the classroom location saved from this device.') : ' Location check is OFF for this session.';
   var deniedNote=sess._locDenied? '<div class="alert err" style="margin-top:10px"><b>Location permission was denied</b> (or location was unavailable), so this session started with the location check OFF — students will not be location-checked. To use the check, allow location access in your browser and start a new session.</div>' : '';
-  $('sessMsg').innerHTML='<div class="alert ok pop"><b>Session LIVE!</b> Show this screen on the projector. The QR code refreshes every 15 seconds with the new rotating code inside it — students scan it and both codes arrive pre-filled; they only type their name and scholar number.'+locNote+'</div>'+deniedNote;
+  $('sessMsg').innerHTML='<div class="alert ok pop"><b>Session LIVE!</b> Show this screen on the projector. The QR code refreshes every 25 seconds with the new rotating code inside it — students scan it and both codes arrive pre-filled; they only type their name and scholar number.'+locNote+'</div>'+deniedNote;
 }
 function joinURL(){ return location.origin+location.pathname+'?join='+(activeSession?activeSession.code:'')+'&rot='+(activeSession?activeSession.rotatingCode:''); }
 function renderQR(){ var el=$('qrcode'); el.innerHTML=''; if(window.QRCode){ new QRCode(el,{text:joinURL(),width:160,height:160}); } }
 function startRotation(){
-  clearInterval(rotTimer); clearInterval(countTimer); secondsLeft=15;
-  countTimer=setInterval(function(){ secondsLeft--; if(secondsLeft<0) secondsLeft=15; $('countdown').textContent=secondsLeft; $('progBar').style.width=(secondsLeft/15*100)+'%'; },1000);
+  clearInterval(rotTimer); clearInterval(countTimer); secondsLeft=ROTATE_SECONDS;
+  countTimer=setInterval(function(){ secondsLeft--; if(secondsLeft<0) secondsLeft=ROTATE_SECONDS; $('countdown').textContent=secondsLeft; $('progBar').style.width=(secondsLeft/ROTATE_SECONDS*100)+'%'; },1000);
   rotTimer=setInterval(function(){
-    if(!activeSession) return; activeSession.rotatingCode=rand(4); secondsLeft=15; $('countdown').textContent=secondsLeft; $('progBar').style.width='100%'; $('rotCode').textContent=activeSession.rotatingCode; $('rotCode').parentElement.classList.remove('pop'); void $('rotCode').offsetWidth; $('rotCode').classList.add('pop'); renderQR();
+    if(!activeSession) return; activeSession.rotatingCode=rand(4); secondsLeft=ROTATE_SECONDS; $('countdown').textContent=secondsLeft; $('progBar').style.width='100%'; $('rotCode').textContent=activeSession.rotatingCode; $('rotCode').parentElement.classList.remove('pop'); void $('rotCode').offsetWidth; $('rotCode').classList.add('pop'); renderQR();
     if(!demoMode && db) db.collection('sessions').doc(activeSession.id).update({rotatingCode:activeSession.rotatingCode}).catch(function(){});
-  },15000);
+  },ROTATE_SECONDS*1000);
 }
 function listenAttendance(){
   if(demoMode){ renderReg(demo.attendance.filter(function(a){return a.sessionId===activeSession.id})); return; }
@@ -572,7 +573,7 @@ function markAttendance(){
   db.collection('sessions').where('code','==',sc).where('active','==',true).limit(1).get().then(function(snap){
     if(snap.empty){ $('stuMsg').innerHTML='<div class="alert err">No active session found. Please check the code with your teacher again.</div>'; return; }
     var doc=snap.docs[0], sess=doc.data(); sess.id=doc.id;
-    if(rc && rc!==sess.rotatingCode){ $('stuMsg').innerHTML='<div class="alert err">Rotating code is expired / wrong — check the current code on the teacher\'s screen (it changes every 15 seconds).</div>'; return; }
+    if(rc && rc!==sess.rotatingCode){ $('stuMsg').innerHTML='<div class="alert err">Rotating code is expired / wrong — check the current code on the teacher\'s screen (it changes every 25 seconds).</div>'; return; }
     db.collection('attendance').where('sessionId','==',sess.id).where('scholarNo','==',sch).limit(1).get().then(function(dup){
       if(!dup.empty){ $('stuMsg').innerHTML='<div class="alert err"><b>Already marked!</b> This scholar number is already marked present in this session.</div>'; return; }
       function saveAtt(extra){
@@ -661,7 +662,7 @@ function closeLegal(which){ var p=$('legal-'+which); if(p){ p.classList.add('hid
 document.addEventListener('keydown',function(e){ if(e.key==='Escape'){ closeLegal('privacy'); closeLegal('terms'); } });
 showRole('teacher');
 // Students arrive only via the teacher's QR code: ?join=<session code>&rot=<rotating code>.
-// The QR itself rotates every 15 seconds and carries the current rotating code inside the link.
+// The QR itself rotates every 25 seconds and carries the current rotating code inside the link.
 // A scanned link opens STUDENT-ONLY mode: the whole website (hero, stats, teacher/admin panels,
 // footer) is hidden and only the attendance form is shown. When the rotating code came inside
 // the link, the code fields are hidden too — the student sees and types only name + scholar number.
