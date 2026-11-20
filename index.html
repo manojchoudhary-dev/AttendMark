@@ -189,10 +189,10 @@ details{margin-top:12px} summary{cursor:pointer;font-weight:700;padding:10px 0;c
   <section id="view-student" class="hidden">
     <div class="grid2">
       <div class="card">
-        <h2>Mark your attendance</h2><p class="sub">You reached this form by scanning the QR code your teacher is displaying. The session code is already filled in — enter the current rotating code from the teacher's screen, then your details. Wrong or expired codes will not work.</p>
+        <h2>Mark your attendance</h2><p class="sub">You reached this form by scanning the QR code your teacher is displaying. Both codes are already filled in from the QR — just enter your name and scholar number. If you opened this page by typing the link instead, type the session code and the current rotating code from the teacher's screen.</p>
         <div class="steps"><div class="step on" id="sstep1">1 • Session Code</div><div class="step" id="sstep2">2 • Your Details</div><div class="step" id="sstep3">3 • Done ✓</div></div>
         <label>Session Code (6-digit, from your teacher)</label><input id="stuSessionCode" inputmode="numeric" placeholder="e.g. 482910" maxlength="6">
-        <label>Rotating Code (current one on the teacher's screen)</label><input id="stuRotCode" inputmode="numeric" placeholder="e.g. 7319" maxlength="6">
+        <label>Rotating Code (auto-filled from the QR — type it only if you opened the link manually)</label><input id="stuRotCode" inputmode="numeric" placeholder="e.g. 7319" maxlength="6">
         <label>Your Name</label><input id="stuName" placeholder="e.g. Aarav Sharma">
         <label>Scholar Number</label><input id="stuScholar" placeholder="e.g. 26U020101">
         <label style="display:flex;gap:10px;align-items:flex-start;font-weight:600"><input type="checkbox" id="stuInClass" checked style="width:20px;height:20px;margin-top:2px"> I am in the classroom right now</label>
@@ -204,7 +204,7 @@ details{margin-top:12px} summary{cursor:pointer;font-weight:700;padding:10px 0;c
         <h3>For Students — understand in 30 seconds</h3>
         <ul class="list">
           <li><span><b>1. Scan the QR code</b><br><span class="sub">The teacher displays a QR code on the screen / projector — scanning it opens this form with the session code filled in</span></span><span class="badge">15 sec</span></li>
-          <li><span><b>2. Fill the form</b><br><span class="sub">Rotating code from the teacher's screen + your name and scholar number</span></span><span class="badge">20 sec</span></li>
+          <li><span><b>2. Fill the form</b><br><span class="sub">Both codes come pre-filled from the QR — you only type your name and scholar number</span></span><span class="badge">20 sec</span></li>
           <li><span><b>3. Done</b><br><span class="sub">Your name will appear in the teacher's live register</span></span><span class="badge">Instant</span></li>
         </ul>
         <div class="alert info"><b>No phone / slow internet?</b> The teacher can also add you manually from their panel — see “Add manually” in the Teacher panel.</div>
@@ -488,21 +488,24 @@ function startLive(sess){
   $('liveMeta').textContent=sess.subject+' • '+sess.section+' • '+sess.room+' • '+sess.dateStr;
   $('bigCode').textContent=sess.code; $('rotCode').textContent=sess.rotatingCode; $('qrWrap').classList.remove('hidden');
   renderQR(); startRotation(); listenAttendance(); $('liveCount').textContent='0';
-  $('sessMsg').innerHTML='<div class="alert ok pop"><b>Session LIVE!</b> Show this screen on the projector. Students scan the QR code — it opens the marking form with the Session Code already filled in; they only type the current Rotating Code.</div>';
+  $('sessMsg').innerHTML='<div class="alert ok pop"><b>Session LIVE!</b> Show this screen on the projector. The QR code refreshes every 15 seconds with the new rotating code inside it — students scan it and both codes arrive pre-filled; they only type their name and scholar number.</div>';
 }
-function joinURL(){ return location.origin+location.pathname+'?join='+(activeSession?activeSession.code:''); }
+function joinURL(){ return location.origin+location.pathname+'?join='+(activeSession?activeSession.code:'')+'&rot='+(activeSession?activeSession.rotatingCode:''); }
 function renderQR(){ var el=$('qrcode'); el.innerHTML=''; if(window.QRCode){ new QRCode(el,{text:joinURL(),width:160,height:160}); } }
 function startRotation(){
   clearInterval(rotTimer); clearInterval(countTimer); secondsLeft=15;
   countTimer=setInterval(function(){ secondsLeft--; if(secondsLeft<0) secondsLeft=15; $('countdown').textContent=secondsLeft; $('progBar').style.width=(secondsLeft/15*100)+'%'; },1000);
   rotTimer=setInterval(function(){
-    if(!activeSession) return; activeSession.rotatingCode=rand(4); $('rotCode').textContent=activeSession.rotatingCode; $('rotCode').parentElement.classList.remove('pop'); void $('rotCode').offsetWidth; $('rotCode').classList.add('pop'); renderQR();
+    if(!activeSession) return; activeSession.rotatingCode=rand(4); secondsLeft=15; $('countdown').textContent=secondsLeft; $('progBar').style.width='100%'; $('rotCode').textContent=activeSession.rotatingCode; $('rotCode').parentElement.classList.remove('pop'); void $('rotCode').offsetWidth; $('rotCode').classList.add('pop'); renderQR();
     if(!demoMode && db) db.collection('sessions').doc(activeSession.id).update({rotatingCode:activeSession.rotatingCode}).catch(function(){});
   },15000);
 }
 function listenAttendance(){
   if(demoMode){ renderReg(demo.attendance.filter(function(a){return a.sessionId===activeSession.id})); return; }
-  db.collection('attendance').where('sessionId','==',activeSession.id).orderBy('markedAt','asc').onSnapshot(function(snap){ var arr=[]; snap.forEach(function(d){ var x=d.data(); x.id=d.id; arr.push(x); }); renderReg(arr); },function(e){ console.log(e); });
+  // No orderBy here on purpose: where()+orderBy() on different fields makes Firestore demand a
+  // composite index, and without one the listener errors out and the register stays empty forever.
+  // Fetch by sessionId only and sort in the browser instead — entries always show.
+  db.collection('attendance').where('sessionId','==',activeSession.id).onSnapshot(function(snap){ var arr=[]; snap.forEach(function(d){ var x=d.data(); x.id=d.id; arr.push(x); }); arr.sort(function(a,b){ var ta=a.markedAt&&a.markedAt.toDate?a.markedAt.toDate().getTime():0; var tb=b.markedAt&&b.markedAt.toDate?b.markedAt.toDate().getTime():0; return ta-tb; }); renderReg(arr); },function(e){ $('regBody').innerHTML='<tr><td colspan="5" style="color:var(--pink)"><b>Register could not load:</b> '+esc(e.message)+'</td></tr>'; $('sessMsg').innerHTML='<div class="alert err"><b>Live register error:</b> '+esc(e.message)+'</div>'; });
 }
 function renderReg(arr){
   $('liveCount').textContent=arr.length; $('liveCount').classList.remove('pop'); void $('liveCount').offsetWidth; $('liveCount').classList.add('pop');
@@ -549,15 +552,15 @@ function markAttendance(){
       db.collection('attendance').add({sessionId:sess.id,sessionCode:sc,subject:sess.subject,teacherId:sess.teacherId,name:name,scholarNo:sch,via:'QR/Code',markedAt:firebase.firestore.FieldValue.serverTimestamp()}).then(function(){
         $('sstep3').classList.add('on'); $('stuMsg').innerHTML='<div class="alert ok pop"><b>✓ Present marked!</b> '+esc(name)+' • '+esc(sess.subject)+'</div>';
         $('myToday').innerHTML='<div class="alert ok"><b>'+esc(sess.subject)+'</b> — Present ✓<br>Scholar: '+esc(sch)+' • '+new Date().toLocaleTimeString('en-IN')+'</div>';
-      });
-    });
+      }).catch(function(e){ $('stuMsg').innerHTML='<div class="alert err"><b>Could not save your attendance:</b> '+esc(e.message)+' — please tell your teacher.</div>'; });
+    }).catch(function(e){ $('stuMsg').innerHTML='<div class="alert err">'+esc(e.message)+'</div>'; });
   }).catch(function(e){ $('stuMsg').innerHTML='<div class="alert err">'+esc(e.message)+'</div>'; });
 }
 function manualAdd(){
   if(!activeSession){ alertBox('sessMsg','Please start a live session first.'); return; }
   var n=$('manualName').value.trim(), s=$('manualScholar').value.trim().toUpperCase(); if(!n||!s) return;
   if(demoMode){ demo.attendance.push({sessionId:activeSession.id,name:n,scholarNo:s,via:'Manual',timeStr:new Date().toLocaleTimeString('en-IN'),markedAt:new Date()}); renderReg(demo.attendance.filter(function(a){return a.sessionId===activeSession.id})); return; }
-  db.collection('attendance').add({sessionId:activeSession.id,sessionCode:activeSession.code,subject:activeSession.subject,name:n,scholarNo:s,via:'Manual',markedAt:firebase.firestore.FieldValue.serverTimestamp()});
+  db.collection('attendance').add({sessionId:activeSession.id,sessionCode:activeSession.code,subject:activeSession.subject,name:n,scholarNo:s,via:'Manual',markedAt:firebase.firestore.FieldValue.serverTimestamp()}).then(function(){ $('manualName').value=''; $('manualScholar').value=''; }).catch(function(e){ alertBox('sessMsg','Manual entry failed: '+e.message); });
 }
 
 // CSV & EMAIL
@@ -581,7 +584,7 @@ function emailRegister(){
 function loadPastSessions(){
   if(demoMode){ $('pastSessions').innerHTML=demo.sessions.length? demo.sessions.map(function(s){return '<div class="list"><li><span><b>'+esc(s.subject)+'</b><br><span class="sub">'+esc(s.section)+' • '+esc(s.dateStr)+' • Code '+esc(s.code)+'</span></span><span class="badge '+(s.active?'':'off')+'">'+(s.active?'LIVE':'Ended')+'</span></li></div>'}).join(''):'<p class="sub">No sessions yet.</p>'; return; }
   if(!db||!currentUser) return;
-  db.collection('sessions').where('teacherId','==',currentUser.uid).orderBy('createdAt','desc').limit(20).get().then(function(snap){ var h=''; snap.forEach(function(d){ var s=d.data(); h+='<div class="list"><li><span><b>'+esc(s.subject)+'</b><br><span class="sub">'+esc(s.section||'')+' • '+esc(s.dateStr||'')+' • Code '+esc(s.code)+'</span></span><span class="badge '+(s.active?'':'off')+'">'+(s.active?'LIVE':'Ended')+'</span></li></div>'; }); $('pastSessions').innerHTML=h||'<p class="sub">No sessions yet.</p>'; }).catch(function(){ $('pastSessions').innerHTML='<p class="sub">Sessions failed to load — please check Firestore is enabled / index.</p>'; });
+  db.collection('sessions').where('teacherId','==',currentUser.uid).get().then(function(snap){ var docs=[]; snap.forEach(function(d){ docs.push(d.data()); }); docs.sort(function(a,b){ var ta=a.createdAt&&a.createdAt.toDate?a.createdAt.toDate().getTime():0; var tb=b.createdAt&&b.createdAt.toDate?b.createdAt.toDate().getTime():0; return tb-ta; }); docs=docs.slice(0,20); var h=''; docs.forEach(function(s){ h+='<div class="list"><li><span><b>'+esc(s.subject)+'</b><br><span class="sub">'+esc(s.section||'')+' • '+esc(s.dateStr||'')+' • Code '+esc(s.code)+'</span></span><span class="badge '+(s.active?'':'off')+'">'+(s.active?'LIVE':'Ended')+'</span></li></div>'; }); $('pastSessions').innerHTML=h||'<p class="sub">No sessions yet.</p>'; }).catch(function(e){ $('pastSessions').innerHTML='<p class="sub">Sessions failed to load: '+esc(e.message)+'</p>'; });
 }
 function loadGlobalStats(){
   if(demoMode){ updateStatsDemo(); return; }
@@ -619,8 +622,10 @@ function closeLegal(which){ var p=$('legal-'+which); if(p){ p.classList.add('hid
 ['privacy','terms'].forEach(function(w){ var p=$('legal-'+w); if(p) p.addEventListener('click',function(e){ if(e.target===p) closeLegal(w); }); });
 document.addEventListener('keydown',function(e){ if(e.key==='Escape'){ closeLegal('privacy'); closeLegal('terms'); } });
 showRole('teacher');
-// Students arrive only via the teacher's QR code: ?join=<session code> opens the marking form directly.
-(function(){ try{ var j=new URLSearchParams(location.search).get('join'); if(j){ $('stuSessionCode').value=String(j).replace(/\D/g,'').slice(0,6); showRole('student'); $('view-student').scrollIntoView(); var rc=$('stuRotCode'); if(rc) rc.focus({preventScroll:true}); } }catch(e){} })();
+// Students arrive only via the teacher's QR code: ?join=<session code>&rot=<rotating code>.
+// The QR itself rotates every 15 seconds and carries the current rotating code inside the link,
+// so both codes arrive pre-filled — the student only types name + scholar number.
+(function(){ try{ var q=new URLSearchParams(location.search); var j=q.get('join'); if(j){ $('stuSessionCode').value=String(j).replace(/\D/g,'').slice(0,6); var rot=q.get('rot'); if(rot){ $('stuRotCode').value=String(rot).replace(/\D/g,'').slice(0,6); $('stuMsg').innerHTML='<div class="alert ok pop"><b>Codes auto-filled from the QR code ✓</b> Just enter your name and scholar number below, then tap “Mark Me Present”.</div>'; } showRole('student'); $('view-student').scrollIntoView(); var nm=$('stuName'); if(nm) nm.focus({preventScroll:true}); } }catch(e){} })();
 </script>
 </body>
 </html>
