@@ -11,9 +11,12 @@ Taking attendance in a classroom the usual way — calling out names or passing 
 AttendMark makes attendance fast for the teacher and hard to fake for students:
 
 - The **teacher logs in** and starts a session for the class.
-- The screen shows a **QR code with a join link**, a big **session code**, and a **rotating code that changes every 15 seconds** — a screenshot of the code is useless within seconds.
-- **Students have no separate entry point.** They scan the teacher's QR, the marking form opens with the session already filled in, and they enter the current rotating code, their name and scholar number.
-- A scholar number can mark **only once per session** — a second attempt is blocked as **"Already marked"**, and blocked attempts are shown to the teacher.
+- The screen shows a **QR code with a join link**, a big **session code**, and a **rotating code that changes every 25 seconds** — the QR rotates with the code, so a screenshot is useless within seconds.
+- **Students have no separate entry point.** They scan the teacher's QR and only the marking form opens — the session and rotating code are filled in automatically and never shown to the student; they enter just their name and scholar number.
+- A scholar number can mark **only once per session** — a second attempt is blocked as **"Already marked"**.
+- **Location check:** the session captures the teacher's classroom location, and a student can mark only within 150 metres of it; the register shows each entry's distance from the class.
+- **Device lock:** one device can mark only once per session — after a successful mark, the same phone cannot open the marking form for that session again.
+- **Red-flag detention system:** a second actual submit (same scholar number again, or a second entry from a device that already marked) is recorded and shown to the teacher in a red **Flagged Attempts** panel, labelled **FLAGGED — FOR DETENTION**, with the scholar number, name, time and reason. The flags are included in the CSV download and in the emailed register.
 - The teacher watches a **live register** fill up in real time, can **download a CSV**, or send the register to their email in one click.
 
 ## Roles
