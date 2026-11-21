@@ -1,6 +1,6 @@
 # AttendMark — No-Proxy Class Attendance System
 
-**Live site:** https://attendmark-zeta.vercel.app
+**Live site:** https://attendmarkk.vercel.app
 
 ## The Problem
 
